@@ -10,7 +10,7 @@ import { resetTables } from "./dynamo-fixture";
 
 describe("accounts", () => {
   let app: INestApplication;
-  let cookie: string[];
+  let cookie: string;
 
   const body = {
     name: "Studio Nord",

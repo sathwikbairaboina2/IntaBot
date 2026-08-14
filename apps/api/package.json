@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "node --env-file=../../.env --import tsx --watch src/main.ts",
     "start:dev": "node --env-file=../../.env --import tsx --watch src/main.ts",
-    "build": "tsc -p tsconfig.json",
+    "build": "tsc -p tsconfig.build.json",
     "create-user": "node --env-file=../../.env --import tsx src/cli/create-user.ts"
   },
   "dependencies": {
@@ -25,6 +25,7 @@
   "devDependencies": {
     "@nestjs/testing": "11.0.1",
     "@types/cookie-parser": "1.4.8",
+    "@types/express": "5.0.0",
     "@types/supertest": "6.0.2",
     "supertest": "7.0.0",
     "tsx": "4.19.2"

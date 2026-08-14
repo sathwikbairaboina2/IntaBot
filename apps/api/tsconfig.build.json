@@ -1,0 +1,11 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "rootDir": "src",
+    "noEmit": false
+  },
+  "include": ["src"],
+  // Tests live beside the code they cover and import helpers from ../test,
+  // which is outside rootDir. They are type-checked by tsconfig.json.
+  "exclude": ["**/*.test.ts"]
+}

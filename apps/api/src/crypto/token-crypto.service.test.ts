@@ -26,7 +26,7 @@ describe("TokenCryptoService", () => {
   it("rejects a tampered ciphertext", () => {
     const [v, iv, tag, ct] = svc.encrypt("hello").split(":");
     const flipped = Buffer.from(ct!, "base64");
-    flipped[0] ^= 0xff;
+    flipped.writeUInt8(flipped.readUInt8(0) ^ 0xff, 0);
     expect(() => svc.decrypt(`${v}:${iv}:${tag}:${flipped.toString("base64")}`)).toThrow();
   });
 
