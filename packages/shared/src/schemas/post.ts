@@ -29,6 +29,12 @@ export const PostSchema = z.object({
   igMediaId: z.string().optional(),
   permalink: z.string().optional(),
   failureReason: z.string().optional(),
+  /** Accessibility text produced alongside the caption. */
+  altText: z.string().optional(),
+  /** Copy generation refused or failed validation; a human must write it. */
+  needsAttention: z.boolean().optional(),
+  /** Published in dry-run mode; never reached Instagram. */
+  dryRun: z.boolean().optional(),
   createdAt: isoDateTime,
   updatedAt: isoDateTime,
 });
