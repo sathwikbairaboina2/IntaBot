@@ -8,6 +8,7 @@ import { MediaModule } from "../media/media.module";
 import { PostsModule } from "../posts/posts.module";
 import { InstagramModule } from "../instagram/instagram.module";
 import { DraftProcessor } from "./draft.processor";
+import { PollContainerProcessor } from "./poll-container.processor";
 import { PublishScanProcessor } from "./publish-scan.processor";
 import { PublishProcessor } from "./publish.processor";
 import {
@@ -48,6 +49,7 @@ function queueProvider(token: symbol, name: string) {
     DraftProcessor,
     PublishScanProcessor,
     PublishProcessor,
+    PollContainerProcessor,
     WorkersService,
   ],
   exports: [
@@ -59,6 +61,7 @@ function queueProvider(token: symbol, name: string) {
     DraftProcessor,
     PublishScanProcessor,
     PublishProcessor,
+    PollContainerProcessor,
   ],
 })
 export class JobsModule {}
