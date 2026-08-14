@@ -1,0 +1,29 @@
+# Host ports are deliberately non-standard: this machine already runs other
+# projects on 8000 (dynamodb) and 9000/9001 (minio). Container-internal ports
+# are unchanged.
+name: intabot
+
+services:
+  dynamodb:
+    container_name: intabot-dynamodb
+    image: amazon/dynamodb-local:2.5.3
+    command: ["-jar", "DynamoDBLocal.jar", "-sharedDb", "-inMemory"]
+    ports: ["8200:8000"]
+
+  redis:
+    container_name: intabot-redis
+    image: redis:7.4-alpine
+    ports: ["6479:6379"]
+
+  minio:
+    container_name: intabot-minio
+    image: minio/minio:RELEASE.2024-11-07T00-52-20Z
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: intabot
+      MINIO_ROOT_PASSWORD: intabot-dev-secret
+    ports: ["9200:9000", "9201:9001"]
+    volumes: ["minio-data:/data"]
+
+volumes:
+  minio-data:
