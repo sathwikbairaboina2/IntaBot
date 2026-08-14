@@ -56,6 +56,22 @@ pnpm --filter @intabot/web run dev
 
 Then open <http://localhost:3100> and sign in with the operator you created.
 
+## Trying the content loop
+
+With `pnpm dev` running and an account created:
+
+1. Open <http://localhost:3100/upload>, pick an account, upload a JPEG.
+2. The drafting worker writes a caption and picks a slot; the post appears
+   at <http://localhost:3100/approvals> within a few seconds.
+3. Edit the caption if you like, then Approve.
+4. Accounts default to `dryRun: true`, so publishing runs the full state
+   machine and stops short of Instagram. Published dry-run posts carry an
+   `igMediaId` starting `dryrun-`.
+
+Real caption generation needs `ANTHROPIC_API_KEY` in `.env`; without it the
+deterministic `FakeCopyWriter` is used. Real publishing needs Meta setup
+(Phase 0) and `dryRun: false` on the account.
+
 ## Tests
 
 ```bash
@@ -84,7 +100,7 @@ credentials are needed to run the suite.
 
 - [ ] Phase 0 — Meta app setup (manual; see `docs/meta-setup.md`)
 - [x] Phase 1 — foundation
-- [ ] Phase 2 — Content Agent
+- [x] Phase 2 — Content Agent
 - [ ] Phase 3 — Moderation Agent
 - [ ] Phase 4 — Analytics
 - [ ] Phase 5 — hardening and deploy
