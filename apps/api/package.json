@@ -9,12 +9,15 @@
     "create-user": "tsx src/cli/create-user.ts"
   },
   "dependencies": {
+    "@aws-sdk/client-dynamodb": "3.716.0",
+    "@aws-sdk/lib-dynamodb": "3.716.0",
     "@intabot/shared": "workspace:*",
     "@nestjs/common": "11.0.1",
     "@nestjs/core": "11.0.1",
     "@nestjs/platform-express": "11.0.1",
     "reflect-metadata": "0.2.2",
     "rxjs": "7.8.1",
+    "ulid": "2.3.0",
     "zod": "3.24.1"
   },
   "devDependencies": {
