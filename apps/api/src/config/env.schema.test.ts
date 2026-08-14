@@ -37,4 +37,19 @@ describe("parseEnv", () => {
   it("allows Meta credentials to be absent in phase 1", () => {
     expect(parseEnv(valid).meta.appId).toBeUndefined();
   });
+
+  // `node --env-file=.env` sets declared-but-blank keys to "", not undefined,
+  // so a freshly copied .env.example must still parse.
+  it("treats a blank optional variable as absent", () => {
+    const cfg = parseEnv({
+      ...valid,
+      META_APP_ID: "",
+      META_APP_SECRET: "",
+      META_WEBHOOK_VERIFY_TOKEN: "",
+      DYNAMO_ENDPOINT: "",
+    });
+    expect(cfg.meta.appId).toBeUndefined();
+    expect(cfg.meta.appSecret).toBeUndefined();
+    expect(cfg.dynamo.endpoint).toBeUndefined();
+  });
 });
