@@ -10,7 +10,9 @@
   },
   "dependencies": {
     "@aws-sdk/client-dynamodb": "3.716.0",
+    "@aws-sdk/client-s3": "3.716.0",
     "@aws-sdk/lib-dynamodb": "3.716.0",
+    "@aws-sdk/s3-request-presigner": "3.716.0",
     "@intabot/shared": "workspace:*",
     "@nestjs/common": "11.0.1",
     "@nestjs/core": "11.0.1",

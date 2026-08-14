@@ -7,6 +7,7 @@ import { DynamoModule } from "./dynamo/dynamo.module";
 import { HealthController } from "./health/health.controller";
 import { InstagramModule } from "./instagram/instagram.module";
 import { JobsModule } from "./jobs/jobs.module";
+import { MediaModule } from "./media/media.module";
 import { PostsModule } from "./posts/posts.module";
 
 @Module({
@@ -19,6 +20,7 @@ import { PostsModule } from "./posts/posts.module";
     PostsModule,
     InstagramModule,
     JobsModule,
+    MediaModule,
   ],
   controllers: [HealthController],
 })
