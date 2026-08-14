@@ -1,7 +1,12 @@
 import { Global, Module } from "@nestjs/common";
 import { Queue } from "bullmq";
 import IORedis from "ioredis";
+import { AccountsModule } from "../accounts/accounts.module";
 import { AppConfigService } from "../config/config.service";
+import { ContentModule } from "../content/content.module";
+import { MediaModule } from "../media/media.module";
+import { PostsModule } from "../posts/posts.module";
+import { DraftProcessor } from "./draft.processor";
 import {
   DRAFT_QUEUE,
   POLL_QUEUE,
@@ -11,6 +16,7 @@ import {
   REDIS_CONNECTION,
   queuePrefix,
 } from "./queue.constants";
+import { WorkersService } from "./workers.service";
 
 function queueProvider(token: symbol, name: string) {
   return {
@@ -23,6 +29,7 @@ function queueProvider(token: symbol, name: string) {
 
 @Global()
 @Module({
+  imports: [AccountsModule, PostsModule, MediaModule, ContentModule],
   providers: [
     {
       provide: REDIS_CONNECTION,
@@ -35,7 +42,16 @@ function queueProvider(token: symbol, name: string) {
     queueProvider(PUBLISH_SCAN_QUEUE, QUEUE.publishScan),
     queueProvider(PUBLISH_QUEUE, QUEUE.publish),
     queueProvider(POLL_QUEUE, QUEUE.pollContainer),
+    DraftProcessor,
+    WorkersService,
   ],
-  exports: [REDIS_CONNECTION, DRAFT_QUEUE, PUBLISH_SCAN_QUEUE, PUBLISH_QUEUE, POLL_QUEUE],
+  exports: [
+    REDIS_CONNECTION,
+    DRAFT_QUEUE,
+    PUBLISH_SCAN_QUEUE,
+    PUBLISH_QUEUE,
+    POLL_QUEUE,
+    DraftProcessor,
+  ],
 })
 export class JobsModule {}
