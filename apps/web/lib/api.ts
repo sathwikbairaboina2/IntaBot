@@ -43,3 +43,22 @@ export async function getMe(): Promise<{ email: string } | null> {
     throw err;
   }
 }
+
+export interface PostView {
+  id: string;
+  accountId: string;
+  status: string;
+  format: string;
+  version: number;
+  caption: string;
+  hashtags: string[];
+  altText?: string;
+  needsAttention?: boolean;
+  dryRun?: boolean;
+  scheduledAt: string;
+  permalink?: string;
+}
+
+export async function getApprovals(accountId: string): Promise<PostView[]> {
+  return apiFetch<PostView[]>(`/approvals?accountId=${encodeURIComponent(accountId)}`);
+}
