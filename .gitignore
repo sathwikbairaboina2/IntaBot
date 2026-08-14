@@ -1,0 +1,19 @@
+node_modules/
+dist/
+.next/
+.env
+.env.local
+*.log
+.DS_Store
+dist/
+.next/
+next-env.d.ts
+tsconfig.tsbuildinfo
+
+# Compiled output must never sit beside TypeScript sources: Node resolves
+# the .js first and tests silently load stale code.
+apps/api/**/*.js
+apps/api/**/*.d.ts
+apps/api/**/*.js.map
+apps/api/**/*.d.ts.map
+!apps/api/*.config.ts
