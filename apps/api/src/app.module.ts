@@ -1,5 +1,6 @@
 import { Module } from "@nestjs/common";
 import { AccountsModule } from "./accounts/accounts.module";
+import { ApprovalsModule } from "./approvals/approvals.module";
 import { AuthModule } from "./auth/auth.module";
 import { AppConfigModule } from "./config/config.module";
 import { ContentModule } from "./content/content.module";
@@ -23,6 +24,7 @@ import { PostsModule } from "./posts/posts.module";
     JobsModule,
     MediaModule,
     ContentModule,
+    ApprovalsModule,
   ],
   controllers: [HealthController],
 })
