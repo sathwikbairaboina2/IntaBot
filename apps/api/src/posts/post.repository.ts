@@ -180,6 +180,23 @@ export class PostRepository {
     }
   }
 
+  /** APPROVED posts whose slot has arrived. */
+  async listDue(accountId: string, beforeIso: string): Promise<Post[]> {
+    const out = await this.doc.send(
+      new QueryCommand({
+        TableName: this.table,
+        IndexName: "GSI1",
+        KeyConditionExpression: "GSI1PK = :pk AND GSI1SK <= :before",
+        ExpressionAttributeValues: {
+          ":pk": `ACCT#${accountId}#ST#APPROVED`,
+          ":before": beforeIso,
+        },
+        ScanIndexForward: true,
+      }),
+    );
+    return (out.Items ?? []).map((item) => PostSchema.parse(item));
+  }
+
   /**
    * Scheduled instants for posts that still occupy a slot: anything awaiting
    * approval or already approved. Published and failed posts free their slot.

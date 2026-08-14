@@ -6,7 +6,10 @@ import { AppConfigService } from "../config/config.service";
 import { ContentModule } from "../content/content.module";
 import { MediaModule } from "../media/media.module";
 import { PostsModule } from "../posts/posts.module";
+import { InstagramModule } from "../instagram/instagram.module";
 import { DraftProcessor } from "./draft.processor";
+import { PublishScanProcessor } from "./publish-scan.processor";
+import { PublishProcessor } from "./publish.processor";
 import {
   DRAFT_QUEUE,
   POLL_QUEUE,
@@ -29,7 +32,7 @@ function queueProvider(token: symbol, name: string) {
 
 @Global()
 @Module({
-  imports: [AccountsModule, PostsModule, MediaModule, ContentModule],
+  imports: [AccountsModule, PostsModule, MediaModule, ContentModule, InstagramModule],
   providers: [
     {
       provide: REDIS_CONNECTION,
@@ -43,6 +46,8 @@ function queueProvider(token: symbol, name: string) {
     queueProvider(PUBLISH_QUEUE, QUEUE.publish),
     queueProvider(POLL_QUEUE, QUEUE.pollContainer),
     DraftProcessor,
+    PublishScanProcessor,
+    PublishProcessor,
     WorkersService,
   ],
   exports: [
@@ -52,6 +57,8 @@ function queueProvider(token: symbol, name: string) {
     PUBLISH_QUEUE,
     POLL_QUEUE,
     DraftProcessor,
+    PublishScanProcessor,
+    PublishProcessor,
   ],
 })
 export class JobsModule {}
