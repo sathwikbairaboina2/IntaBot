@@ -1,4 +1,5 @@
 import { Module } from "@nestjs/common";
+import { AccountsModule } from "./accounts/accounts.module";
 import { AuthModule } from "./auth/auth.module";
 import { AppConfigModule } from "./config/config.module";
 import { CryptoModule } from "./crypto/crypto.module";
@@ -13,6 +14,7 @@ import { PostsModule } from "./posts/posts.module";
     DynamoModule,
     CryptoModule,
     AuthModule,
+    AccountsModule,
     PostsModule,
     InstagramModule,
   ],
