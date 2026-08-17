@@ -44,7 +44,7 @@ safe as the very first command against a fresh stack.
 ## Development
 
 ```bash
-pnpm dev     # API on :4000 and dashboard on :3100 together
+pnpm dev     # API on :4100 and dashboard on :3100 together
 ```
 
 Or individually:
