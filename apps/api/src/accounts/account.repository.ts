@@ -117,6 +117,16 @@ export class AccountRepository {
     return (out.Items ?? []).map((item) => AccountSchema.parse(item));
   }
 
+  /**
+   * Webhooks identify the account by its ig user id. The account list is a
+   * handful of rows, so filtering the TYPE#ACCOUNT partition is fine at this
+   * scale.
+   */
+  async findByIgUserId(igUserId: string): Promise<Account | null> {
+    const all = await this.list();
+    return all.find((a) => a.igUserId === igUserId) ?? null;
+  }
+
   async update(accountId: string, patch: UpdateAccountPatch): Promise<Account> {
     const setParts: string[] = ["#updatedAt = :updatedAt"];
     const names: Record<string, string> = { "#updatedAt": "updatedAt" };

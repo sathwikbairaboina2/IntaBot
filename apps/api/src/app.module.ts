@@ -13,6 +13,7 @@ import { JobsModule } from "./jobs/jobs.module";
 import { MediaModule } from "./media/media.module";
 import { ModerationModule } from "./moderation/moderation.module";
 import { PostsModule } from "./posts/posts.module";
+import { WebhooksModule } from "./webhooks/webhooks.module";
 
 @Module({
   imports: [
@@ -29,6 +30,7 @@ import { PostsModule } from "./posts/posts.module";
     ContentModule,
     ApprovalsModule,
     ModerationModule,
+    WebhooksModule,
   ],
   controllers: [HealthController],
 })
