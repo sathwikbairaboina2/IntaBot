@@ -22,6 +22,12 @@ export const AccountSchema = z.object({
   postingWindows: z
     .array(z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, "expected HH:mm"))
     .default(["09:00", "12:30", "18:00"]),
+  /** Auto-replies allowed on one post within a rolling hour. */
+  replyCapPerPostPerHour: z.number().int().positive().default(4),
+  /** Auto-replies allowed across the account within a rolling hour. */
+  replyCapPerAccountPerHour: z.number().int().positive().default(20),
+  /** Comments containing any of these terms escalate, never auto-reply. */
+  blocklist: z.array(z.string().min(1)).default([]),
   createdAt: isoDateTime,
   updatedAt: isoDateTime,
 });
