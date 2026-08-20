@@ -20,7 +20,13 @@ describe("queuePrefix", () => {
 });
 
 describe("QUEUE", () => {
-  it("names all four queues", () => {
-    expect(Object.values(QUEUE)).toEqual(["draft", "publish-scan", "publish", "poll-container"]);
+  it("names all five queues", () => {
+    expect(Object.values(QUEUE)).toEqual([
+      "draft",
+      "publish-scan",
+      "publish",
+      "poll-container",
+      "moderation",
+    ]);
   });
 });
