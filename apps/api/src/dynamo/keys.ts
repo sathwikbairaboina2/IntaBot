@@ -27,6 +27,9 @@ export const keys = {
     GSI1SK: createdAt,
   }),
 
+  /** Inverse lookup written at publish time: which post owns an ig media id. */
+  igMediaRef: (igMediaId: string) => ({ PK: `IGM#${igMediaId}`, SK: "#" }),
+
   accountInsights: (accountId: string, date: string) => ({
     PK: `ACCT#${accountId}#INS#ACCOUNT`,
     SK: date,
