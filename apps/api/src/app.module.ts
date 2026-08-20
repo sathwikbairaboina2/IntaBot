@@ -1,6 +1,7 @@
 import { Module } from "@nestjs/common";
 import { AccountsModule } from "./accounts/accounts.module";
 import { ApprovalsModule } from "./approvals/approvals.module";
+import { AuditModule } from "./audit/audit.module";
 import { AuthModule } from "./auth/auth.module";
 import { AppConfigModule } from "./config/config.module";
 import { ContentModule } from "./content/content.module";
@@ -18,6 +19,7 @@ import { PostsModule } from "./posts/posts.module";
     AppConfigModule,
     DynamoModule,
     CryptoModule,
+    AuditModule,
     AuthModule,
     AccountsModule,
     PostsModule,
