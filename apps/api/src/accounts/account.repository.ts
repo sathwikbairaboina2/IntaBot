@@ -37,7 +37,15 @@ export interface CreateAccountInput {
 export type UpdateAccountPatch = Partial<
   Pick<
     Account,
-    "name" | "status" | "dryRun" | "moderationPaused" | "accessTokenEncrypted" | "tokenExpiresAt"
+    | "name"
+    | "status"
+    | "dryRun"
+    | "moderationPaused"
+    | "accessTokenEncrypted"
+    | "tokenExpiresAt"
+    | "replyCapPerPostPerHour"
+    | "replyCapPerAccountPerHour"
+    | "blocklist"
   >
 >;
 
