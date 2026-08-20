@@ -14,4 +14,5 @@ export class AppConfigService {
   get session() { return this.config.session; }
   get meta() { return this.config.meta; }
   get anthropicApiKey() { return this.config.anthropicApiKey; }
+  get instagramMode() { return this.config.instagramMode; }
 }

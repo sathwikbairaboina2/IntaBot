@@ -37,7 +37,15 @@ export interface CreateAccountInput {
 export type UpdateAccountPatch = Partial<
   Pick<
     Account,
-    "name" | "status" | "dryRun" | "moderationPaused" | "accessTokenEncrypted" | "tokenExpiresAt"
+    | "name"
+    | "status"
+    | "dryRun"
+    | "moderationPaused"
+    | "accessTokenEncrypted"
+    | "tokenExpiresAt"
+    | "replyCapPerPostPerHour"
+    | "replyCapPerAccountPerHour"
+    | "blocklist"
   >
 >;
 
@@ -107,6 +115,16 @@ export class AccountRepository {
       }),
     );
     return (out.Items ?? []).map((item) => AccountSchema.parse(item));
+  }
+
+  /**
+   * Webhooks identify the account by its ig user id. The account list is a
+   * handful of rows, so filtering the TYPE#ACCOUNT partition is fine at this
+   * scale.
+   */
+  async findByIgUserId(igUserId: string): Promise<Account | null> {
+    const all = await this.list();
+    return all.find((a) => a.igUserId === igUserId) ?? null;
   }
 
   async update(accountId: string, patch: UpdateAccountPatch): Promise<Account> {

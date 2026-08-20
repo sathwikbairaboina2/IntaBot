@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { AccountSchema, MediaAssetSchema, PostSchema, UserSchema } from "../index.js";
+import {
+  AccountSchema,
+  CommentSchema,
+  MediaAssetSchema,
+  PostSchema,
+  UserSchema,
+} from "../index.js";
 
 const account = {
   id: "acct-1",
@@ -123,7 +129,7 @@ describe("phase 2 schema additions", () => {
     expect(parsed.altText).toBe("A studio at dawn");
   });
 
-  it("accepts draftFailed on a media asset", () => {
+  it("accepts draftFailed on a media asset (phase 2)", () => {
     const parsed = MediaAssetSchema.parse({
       id: "a1",
       accountId: "acct-1",
@@ -134,5 +140,105 @@ describe("phase 2 schema additions", () => {
       draftFailed: true,
     });
     expect(parsed.draftFailed).toBe(true);
+  });
+});
+
+describe("phase 3 schema additions", () => {
+  const comment = {
+    igCommentId: "1790001",
+    accountId: "acct-1",
+    postId: "post-1",
+    igMediaId: "fake-media-9",
+    text: "Love this!",
+    fromIgUserId: "9900112",
+    fromUsername: "happyfan",
+    status: "RECEIVED",
+    version: 1,
+    createdAt: "2026-08-21T00:00:00.000Z",
+    updatedAt: "2026-08-21T00:00:00.000Z",
+  };
+
+  it("parses a valid received comment", () => {
+    const parsed = CommentSchema.parse(comment);
+    expect(parsed.status).toBe("RECEIVED");
+    expect(parsed.classification).toBeUndefined();
+  });
+
+  it("parses an auto-replied comment with its classification", () => {
+    const parsed = CommentSchema.parse({
+      ...comment,
+      status: "AUTO_REPLIED",
+      version: 3,
+      classification: {
+        sentiment: "positive",
+        intent: "praise",
+        toxicity: 0.02,
+        isSpam: false,
+        needsHuman: false,
+      },
+      policyRule: "default",
+      replyText: "Thanks!",
+      replyId: "fake-reply-1",
+    });
+    expect(parsed.classification?.intent).toBe("praise");
+    expect(parsed.replyId).toBe("fake-reply-1");
+  });
+
+  it("rejects an unknown comment status", () => {
+    expect(() => CommentSchema.parse({ ...comment, status: "REPLIED" })).toThrow();
+  });
+
+  it("rejects toxicity outside 0..1", () => {
+    expect(() =>
+      CommentSchema.parse({
+        ...comment,
+        classification: {
+          sentiment: "negative",
+          intent: "complaint",
+          toxicity: 1.2,
+          isSpam: false,
+          needsHuman: true,
+        },
+      }),
+    ).toThrow();
+  });
+
+  it("defaults account moderation policy fields", () => {
+    const parsed = AccountSchema.parse({
+      id: "acct-1",
+      name: "Studio Nord",
+      igUserId: "1784140",
+      username: "studionord",
+      status: "ACTIVE",
+      accessTokenEncrypted: "v1:a:b:c",
+      tokenExpiresAt: "2026-10-13T00:00:00.000Z",
+      createdAt: "2026-08-14T00:00:00.000Z",
+      updatedAt: "2026-08-14T00:00:00.000Z",
+    });
+    expect(parsed.replyCapPerPostPerHour).toBe(4);
+    expect(parsed.replyCapPerAccountPerHour).toBe(20);
+    expect(parsed.blocklist).toEqual([]);
+  });
+
+  it("accepts explicit policy fields and rejects a zero cap", () => {
+    const base = {
+      id: "acct-1",
+      name: "Studio Nord",
+      igUserId: "1784140",
+      username: "studionord",
+      status: "ACTIVE",
+      accessTokenEncrypted: "v1:a:b:c",
+      tokenExpiresAt: "2026-10-13T00:00:00.000Z",
+      createdAt: "2026-08-14T00:00:00.000Z",
+      updatedAt: "2026-08-14T00:00:00.000Z",
+    };
+    const parsed = AccountSchema.parse({
+      ...base,
+      replyCapPerPostPerHour: 2,
+      blocklist: ["refund", "lawsuit"],
+    });
+    expect(parsed.replyCapPerPostPerHour).toBe(2);
+    expect(parsed.blocklist).toContain("lawsuit");
+    expect(() => AccountSchema.parse({ ...base, replyCapPerAccountPerHour: 0 })).toThrow();
   });
 });

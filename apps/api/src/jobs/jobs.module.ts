@@ -5,14 +5,17 @@ import { AccountsModule } from "../accounts/accounts.module";
 import { AppConfigService } from "../config/config.service";
 import { ContentModule } from "../content/content.module";
 import { MediaModule } from "../media/media.module";
+import { ModerationModule } from "../moderation/moderation.module";
 import { PostsModule } from "../posts/posts.module";
 import { InstagramModule } from "../instagram/instagram.module";
 import { DraftProcessor } from "./draft.processor";
+import { ModerationProcessor } from "./moderation.processor";
 import { PollContainerProcessor } from "./poll-container.processor";
 import { PublishScanProcessor } from "./publish-scan.processor";
 import { PublishProcessor } from "./publish.processor";
 import {
   DRAFT_QUEUE,
+  MODERATION_QUEUE,
   POLL_QUEUE,
   PUBLISH_QUEUE,
   PUBLISH_SCAN_QUEUE,
@@ -33,7 +36,14 @@ function queueProvider(token: symbol, name: string) {
 
 @Global()
 @Module({
-  imports: [AccountsModule, PostsModule, MediaModule, ContentModule, InstagramModule],
+  imports: [
+    AccountsModule,
+    PostsModule,
+    MediaModule,
+    ContentModule,
+    InstagramModule,
+    ModerationModule,
+  ],
   providers: [
     {
       provide: REDIS_CONNECTION,
@@ -46,10 +56,12 @@ function queueProvider(token: symbol, name: string) {
     queueProvider(PUBLISH_SCAN_QUEUE, QUEUE.publishScan),
     queueProvider(PUBLISH_QUEUE, QUEUE.publish),
     queueProvider(POLL_QUEUE, QUEUE.pollContainer),
+    queueProvider(MODERATION_QUEUE, QUEUE.moderation),
     DraftProcessor,
     PublishScanProcessor,
     PublishProcessor,
     PollContainerProcessor,
+    ModerationProcessor,
     WorkersService,
   ],
   exports: [
@@ -58,10 +70,12 @@ function queueProvider(token: symbol, name: string) {
     PUBLISH_SCAN_QUEUE,
     PUBLISH_QUEUE,
     POLL_QUEUE,
+    MODERATION_QUEUE,
     DraftProcessor,
     PublishScanProcessor,
     PublishProcessor,
     PollContainerProcessor,
+    ModerationProcessor,
   ],
 })
 export class JobsModule {}

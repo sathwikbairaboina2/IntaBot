@@ -2,6 +2,7 @@ import { Inject, Injectable, Logger } from "@nestjs/common";
 import { Queue } from "bullmq";
 import { AccountRepository } from "../accounts/account.repository";
 import { INSTAGRAM_PORT, type InstagramPort } from "../instagram/instagram.port";
+import { IgMediaRefRepository } from "../moderation/ig-media-ref.repository";
 import { PostRepository } from "../posts/post.repository";
 import { POLL_QUEUE } from "./queue.constants";
 
@@ -24,6 +25,7 @@ export class PollContainerProcessor {
     @Inject(AccountRepository) private readonly accounts: AccountRepository,
     @Inject(PostRepository) private readonly posts: PostRepository,
     @Inject(INSTAGRAM_PORT) private readonly instagram: InstagramPort,
+    @Inject(IgMediaRefRepository) private readonly igMediaRefs: IgMediaRefRepository,
     @Inject(POLL_QUEUE) private readonly pollQueue: Queue,
   ) {}
 
@@ -84,6 +86,7 @@ export class PollContainerProcessor {
       nextStatus: "PUBLISHED",
       patch: { igMediaId: result.igMediaId, permalink: result.permalink },
     });
+    await this.igMediaRefs.put(result.igMediaId, { accountId, postId });
     this.logger.log(`published post ${postId} as ${result.igMediaId}`);
     return "published";
   }

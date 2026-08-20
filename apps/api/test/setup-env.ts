@@ -12,6 +12,8 @@ process.env.S3_ACCESS_KEY ??= "intabot";
 process.env.S3_SECRET_KEY ??= "intabot-dev-secret";
 process.env.TOKEN_ENCRYPTION_KEY ??= Buffer.alloc(32, 3).toString("base64");
 process.env.SESSION_TTL_HOURS ??= "168";
+process.env.META_APP_SECRET ??= "test-app-secret";
+process.env.META_WEBHOOK_VERIFY_TOKEN ??= "test-verify-token";
 
 // Tables are scoped per Vitest worker. Test files that run concurrently land
 // in different workers and therefore different tables, so one file's

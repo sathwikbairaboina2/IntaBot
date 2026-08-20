@@ -62,3 +62,34 @@ export interface PostView {
 export async function getApprovals(accountId: string): Promise<PostView[]> {
   return apiFetch<PostView[]>(`/approvals?accountId=${encodeURIComponent(accountId)}`);
 }
+
+export interface ClassificationView {
+  sentiment: "positive" | "neutral" | "negative";
+  intent: "question" | "praise" | "complaint" | "spam" | "other";
+  toxicity: number;
+  isSpam: boolean;
+  needsHuman: boolean;
+}
+
+export interface CommentView {
+  igCommentId: string;
+  accountId: string;
+  postId: string;
+  text: string;
+  fromUsername: string;
+  status: string;
+  version: number;
+  classification?: ClassificationView;
+  policyRule?: string;
+  replyText?: string;
+  createdAt: string;
+}
+
+export interface ModerationView {
+  escalated: CommentView[];
+  recentAutoReplies: CommentView[];
+}
+
+export async function getModeration(accountId: string): Promise<ModerationView> {
+  return apiFetch<ModerationView>(`/moderation?accountId=${encodeURIComponent(accountId)}`);
+}

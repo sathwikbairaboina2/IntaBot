@@ -8,6 +8,7 @@ import { MAX_POLL_ATTEMPTS, PollContainerProcessor } from "../src/jobs/poll-cont
 import { PublishProcessor } from "../src/jobs/publish.processor";
 import { QUEUE } from "../src/jobs/queue.constants";
 import { MediaAssetRepository } from "../src/media/media-asset.repository";
+import { IgMediaRefRepository } from "../src/moderation/ig-media-ref.repository";
 import { PostRepository } from "../src/posts/post.repository";
 import { resetTables } from "./dynamo-fixture";
 import { drainQueues } from "./queue-fixture";
@@ -130,5 +131,15 @@ describe("poll flow", () => {
     await app.get(PollContainerProcessor).process({ accountId, postId, attempt: 2 });
 
     expect(app.get(FakeInstagramAdapter).getPublished()).toHaveLength(1);
+  });
+
+  it("writes an ig-media inverse item when a live publish lands", async () => {
+    app.get(FakeInstagramAdapter).setProcessingPolls(0);
+    await app.get(PublishProcessor).process({ accountId, postId });
+    await app.get(PollContainerProcessor).process({ accountId, postId, attempt: 1 });
+
+    const post = await app.get(PostRepository).get(accountId, postId);
+    const ref = await app.get(IgMediaRefRepository).get(post!.igMediaId!);
+    expect(ref).toEqual({ accountId, postId });
   });
 });

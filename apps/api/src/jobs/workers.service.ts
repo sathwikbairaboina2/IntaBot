@@ -2,6 +2,7 @@ import { Inject, Injectable, Logger, OnApplicationShutdown, OnModuleInit } from 
 import { Queue, Worker } from "bullmq";
 import IORedis from "ioredis";
 import { DraftProcessor, type DraftJobData } from "./draft.processor";
+import { ModerationProcessor, type ModerationJobData } from "./moderation.processor";
 import { PollContainerProcessor, type PollJobData } from "./poll-container.processor";
 import { PublishScanProcessor } from "./publish-scan.processor";
 import { PublishProcessor, type PublishJobData } from "./publish.processor";
@@ -20,6 +21,7 @@ export class WorkersService implements OnModuleInit, OnApplicationShutdown {
     @Inject(PublishProcessor) private readonly publish: PublishProcessor,
     @Inject(PollContainerProcessor) private readonly poll: PollContainerProcessor,
     @Inject(PublishScanProcessor) private readonly scan: PublishScanProcessor,
+    @Inject(ModerationProcessor) private readonly moderation: ModerationProcessor,
     @Inject(PUBLISH_SCAN_QUEUE) private readonly scanQueue: Queue,
   ) {}
 
@@ -42,6 +44,9 @@ export class WorkersService implements OnModuleInit, OnApplicationShutdown {
       }, options),
       new Worker(QUEUE.publishScan, async () => {
         await this.scan.process();
+      }, options),
+      new Worker<ModerationJobData>(QUEUE.moderation, async (job) => {
+        await this.moderation.process(job.data);
       }, options),
     );
 
