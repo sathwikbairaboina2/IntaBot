@@ -8,6 +8,7 @@ import { PublishProcessor } from "../src/jobs/publish.processor";
 import { PublishScanProcessor } from "../src/jobs/publish-scan.processor";
 import { QUEUE } from "../src/jobs/queue.constants";
 import { MediaAssetRepository } from "../src/media/media-asset.repository";
+import { IgMediaRefRepository } from "../src/moderation/ig-media-ref.repository";
 import { PostRepository } from "../src/posts/post.repository";
 import { resetTables } from "./dynamo-fixture";
 import { drainQueues, testQueue } from "./queue-fixture";
@@ -122,5 +123,14 @@ describe("publish flow", () => {
     expect(post?.status).toBe("PUBLISHED");
     expect(post?.dryRun).toBe(true);
     expect(post?.igMediaId).toMatch(/^dryrun-/);
+  });
+
+  it("writes an ig-media inverse item on dry-run publish", async () => {
+    await app.get(AccountRepository).update(accountId, { dryRun: true });
+    await app.get(PublishProcessor).process({ accountId, postId });
+
+    const post = await app.get(PostRepository).get(accountId, postId);
+    const ref = await app.get(IgMediaRefRepository).get(post!.igMediaId!);
+    expect(ref).toEqual({ accountId, postId });
   });
 });

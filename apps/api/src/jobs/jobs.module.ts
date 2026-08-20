@@ -5,6 +5,7 @@ import { AccountsModule } from "../accounts/accounts.module";
 import { AppConfigService } from "../config/config.service";
 import { ContentModule } from "../content/content.module";
 import { MediaModule } from "../media/media.module";
+import { ModerationModule } from "../moderation/moderation.module";
 import { PostsModule } from "../posts/posts.module";
 import { InstagramModule } from "../instagram/instagram.module";
 import { DraftProcessor } from "./draft.processor";
@@ -33,7 +34,14 @@ function queueProvider(token: symbol, name: string) {
 
 @Global()
 @Module({
-  imports: [AccountsModule, PostsModule, MediaModule, ContentModule, InstagramModule],
+  imports: [
+    AccountsModule,
+    PostsModule,
+    MediaModule,
+    ContentModule,
+    InstagramModule,
+    ModerationModule,
+  ],
   providers: [
     {
       provide: REDIS_CONNECTION,

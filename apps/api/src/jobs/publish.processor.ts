@@ -5,6 +5,7 @@ import { AccountRepository } from "../accounts/account.repository";
 import { INSTAGRAM_PORT, type InstagramPort } from "../instagram/instagram.port";
 import { MediaAssetRepository } from "../media/media-asset.repository";
 import { MEDIA_STORAGE, type MediaStoragePort } from "../media/media-storage.port";
+import { IgMediaRefRepository } from "../moderation/ig-media-ref.repository";
 import { PostRepository, PostTransitionConflictError } from "../posts/post.repository";
 import { POLL_QUEUE } from "./queue.constants";
 
@@ -25,6 +26,7 @@ export class PublishProcessor {
     @Inject(MediaAssetRepository) private readonly assets: MediaAssetRepository,
     @Inject(MEDIA_STORAGE) private readonly storage: MediaStoragePort,
     @Inject(INSTAGRAM_PORT) private readonly instagram: InstagramPort,
+    @Inject(IgMediaRefRepository) private readonly igMediaRefs: IgMediaRefRepository,
     @Inject(POLL_QUEUE) private readonly pollQueue: Queue,
   ) {}
 
@@ -62,14 +64,18 @@ export class PublishProcessor {
     }
 
     if (account.dryRun) {
+      const igMediaId = `dryrun-${ulid()}`;
       await this.posts.transition({
         accountId,
         postId,
         expectedStatus: "PUBLISHING",
         expectedVersion: claimed.version,
         nextStatus: "PUBLISHED",
-        patch: { igMediaId: `dryrun-${ulid()}`, dryRun: true },
+        patch: { igMediaId, dryRun: true },
       });
+      // Dry-run comments must still resolve to their post, so the inverse
+      // item is written for the synthetic media id too.
+      await this.igMediaRefs.put(igMediaId, { accountId, postId });
       this.logger.log(`dry run: post ${postId} was not sent to Instagram`);
       return { containerId: null };
     }
