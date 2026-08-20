@@ -20,7 +20,7 @@ environment differs.
 
 | Service | Port |
 | --- | --- |
-| API | 4000 |
+| API | 4100 |
 | Dashboard | 3100 |
 | DynamoDB Local | 8200 |
 | Redis | 6479 |
@@ -70,7 +70,30 @@ With `pnpm dev` running and an account created:
 
 Real caption generation needs `ANTHROPIC_API_KEY` in `.env`; without it the
 deterministic `FakeCopyWriter` is used. Real publishing needs Meta setup
-(Phase 0) and `dryRun: false` on the account.
+(Phase 0), `INSTAGRAM_MODE=live`, and `dryRun: false` on the account.
+
+## Trying the moderation loop
+
+Comments arrive via `POST /webhooks/instagram` (HMAC-verified against
+`META_APP_SECRET`, deduplicated, enqueued). The moderation worker resolves the
+comment to a published post, classifies it, and runs the policy gate:
+
+1. The account's own comments are ignored before classification (self-reply
+   guard — the alternative is the bot talking to itself forever).
+2. `moderationPaused` accounts classify but never reply.
+3. Blocklisted terms, `needsHuman` classifications, and comments past the
+   hourly reply caps escalate to <http://localhost:3100/moderation>, where you
+   reply or dismiss.
+4. Spam is ignored; everything else gets an auto-reply in the account voice.
+
+Every decision — automatic or human — lands on the audit log with the rule
+that fired. Classification and reply generation use `claude-opus-5` when
+`ANTHROPIC_API_KEY` is set, deterministic fakes otherwise. Reply caps and the
+blocklist are per-account fields on `PATCH /accounts/:id`
+(`replyCapPerPostPerHour`, `replyCapPerAccountPerHour`, `blocklist`).
+
+Without Meta credentials the webhook route returns 503; the e2e suite signs
+its own webhooks with test secrets, so the whole loop still runs offline.
 
 ## Tests
 
@@ -101,6 +124,6 @@ credentials are needed to run the suite.
 - [ ] Phase 0 — Meta app setup (manual; see `docs/meta-setup.md`)
 - [x] Phase 1 — foundation
 - [x] Phase 2 — Content Agent
-- [ ] Phase 3 — Moderation Agent
+- [x] Phase 3 — Moderation Agent (offline; live adapter behind `INSTAGRAM_MODE`)
 - [ ] Phase 4 — Analytics
 - [ ] Phase 5 — hardening and deploy
