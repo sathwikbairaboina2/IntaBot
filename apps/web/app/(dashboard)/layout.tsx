@@ -13,7 +13,7 @@ export default async function DashboardLayout({ children }: { children: ReactNod
         <p>Signed in as {me.email}</p>
         <nav>
           <a href="/">Accounts</a> · <a href="/upload">Upload</a> ·{" "}
-          <a href="/approvals">Approvals</a>
+          <a href="/approvals">Approvals</a> · <a href="/moderation">Moderation</a>
         </nav>
       </header>
       {children}
