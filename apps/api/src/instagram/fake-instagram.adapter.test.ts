@@ -1,8 +1,11 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import type { Account } from "@intabot/shared";
+import { AccountSchema } from "@intabot/shared";
 import { FakeInstagramAdapter } from "./fake-instagram.adapter";
 
-const account = {
+// Parsed rather than asserted with `satisfies`, so schema defaults such as
+// timezone and postingWindows are filled in and this fixture keeps compiling
+// as the schema grows.
+const account = AccountSchema.parse({
   id: "acct-1",
   name: "Studio Nord",
   igUserId: "17841400000000000",
@@ -14,7 +17,7 @@ const account = {
   moderationPaused: false,
   createdAt: "2026-08-14T00:00:00.000Z",
   updatedAt: "2026-08-14T00:00:00.000Z",
-} satisfies Account;
+});
 
 describe("FakeInstagramAdapter", () => {
   let adapter: FakeInstagramAdapter;

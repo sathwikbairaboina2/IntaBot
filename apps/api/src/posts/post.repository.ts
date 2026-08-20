@@ -38,6 +38,9 @@ export type PostPatch = Partial<
     | "igMediaId"
     | "permalink"
     | "failureReason"
+    | "altText"
+    | "needsAttention"
+    | "dryRun"
   >
 >;
 
@@ -175,5 +178,49 @@ export class PostRepository {
       }
       throw err;
     }
+  }
+
+  /** APPROVED posts whose slot has arrived. */
+  async listDue(accountId: string, beforeIso: string): Promise<Post[]> {
+    const out = await this.doc.send(
+      new QueryCommand({
+        TableName: this.table,
+        IndexName: "GSI1",
+        KeyConditionExpression: "GSI1PK = :pk AND GSI1SK <= :before",
+        ExpressionAttributeValues: {
+          ":pk": `ACCT#${accountId}#ST#APPROVED`,
+          ":before": beforeIso,
+        },
+        ScanIndexForward: true,
+      }),
+    );
+    return (out.Items ?? []).map((item) => PostSchema.parse(item));
+  }
+
+  /**
+   * Scheduled instants for posts that still occupy a slot: anything awaiting
+   * approval or already approved. Published and failed posts free their slot.
+   */
+  async listScheduledAfter(accountId: string, fromIso: string): Promise<string[]> {
+    const statuses: PostStatus[] = ["PENDING_APPROVAL", "APPROVED"];
+    const results: string[] = [];
+
+    for (const status of statuses) {
+      const out = await this.doc.send(
+        new QueryCommand({
+          TableName: this.table,
+          IndexName: "GSI1",
+          KeyConditionExpression: "GSI1PK = :pk AND GSI1SK >= :from",
+          ExpressionAttributeValues: {
+            ":pk": `ACCT#${accountId}#ST#${status}`,
+            ":from": fromIso,
+          },
+        }),
+      );
+      for (const item of out.Items ?? []) {
+        results.push(PostSchema.parse(item).scheduledAt);
+      }
+    }
+    return results;
   }
 }

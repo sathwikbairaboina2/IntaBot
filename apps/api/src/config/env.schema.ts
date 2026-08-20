@@ -31,6 +31,7 @@ const EnvSchema = z.object({
   META_APP_ID: optionalString(z.string().min(1)),
   META_APP_SECRET: optionalString(z.string().min(1)),
   META_WEBHOOK_VERIFY_TOKEN: optionalString(z.string().min(1)),
+  ANTHROPIC_API_KEY: optionalString(z.string().min(1)),
 });
 
 export interface AppConfig {
@@ -42,6 +43,8 @@ export interface AppConfig {
   tokenEncryptionKey: Buffer;
   session: { ttlHours: number };
   meta: { appId?: string; appSecret?: string; webhookVerifyToken?: string };
+  /** Optional: when absent the deterministic FakeCopyWriter is used. */
+  anthropicApiKey?: string;
 }
 
 export function parseEnv(raw: NodeJS.ProcessEnv | Record<string, string | undefined>): AppConfig {
@@ -74,5 +77,6 @@ export function parseEnv(raw: NodeJS.ProcessEnv | Record<string, string | undefi
       appSecret: e.META_APP_SECRET,
       webhookVerifyToken: e.META_WEBHOOK_VERIFY_TOKEN,
     },
+    anthropicApiKey: e.ANTHROPIC_API_KEY,
   };
 }

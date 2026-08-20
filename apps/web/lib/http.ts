@@ -1,4 +1,6 @@
-export const API_BASE_URL = process.env.API_BASE_URL ?? "http://localhost:4000";
+// 4100, not 4000: another local project's API owns 4000, so the two could not
+// run at the same time and requests would silently reach the wrong service.
+export const API_BASE_URL = process.env.API_BASE_URL ?? "http://localhost:4100";
 
 export class ApiError extends Error {
   constructor(

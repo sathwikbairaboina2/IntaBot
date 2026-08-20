@@ -14,6 +14,14 @@ export const AccountSchema = z.object({
   tokenExpiresAt: isoDateTime,
   dryRun: z.boolean().default(true),
   moderationPaused: z.boolean().default(false),
+  /** Brand-voice fragment passed to the copy writer. */
+  voice: z.string().optional(),
+  /** IANA zone used for slot planning. */
+  timezone: z.string().min(1).default("UTC"),
+  /** Local HH:mm times at which posts may be scheduled. */
+  postingWindows: z
+    .array(z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, "expected HH:mm"))
+    .default(["09:00", "12:30", "18:00"]),
   createdAt: isoDateTime,
   updatedAt: isoDateTime,
 });

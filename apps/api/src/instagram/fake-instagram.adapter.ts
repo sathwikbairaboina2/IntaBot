@@ -60,6 +60,11 @@ export class FakeInstagramAdapter implements InstagramPort {
     return [...this.replies];
   }
 
+  /** Total containers ever created. Used to prove publishing is idempotent. */
+  getContainerCount(): number {
+    return this.containers.size;
+  }
+
   reset(): void {
     this.containers.clear();
     this.published = [];

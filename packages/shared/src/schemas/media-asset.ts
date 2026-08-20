@@ -10,6 +10,8 @@ export const MediaAssetSchema = z.object({
   widthPx: z.number().int().positive().optional(),
   heightPx: z.number().int().positive().optional(),
   durationSeconds: z.number().positive().optional(),
+  /** Drafting exhausted its retries; awaiting manual drafting. */
+  draftFailed: z.boolean().optional(),
   createdAt: isoDateTime,
 });
 export type MediaAsset = z.infer<typeof MediaAssetSchema>;

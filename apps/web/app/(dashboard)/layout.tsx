@@ -11,6 +11,10 @@ export default async function DashboardLayout({ children }: { children: ReactNod
       <header>
         <h1>IntaBot</h1>
         <p>Signed in as {me.email}</p>
+        <nav>
+          <a href="/">Accounts</a> · <a href="/upload">Upload</a> ·{" "}
+          <a href="/approvals">Approvals</a>
+        </nav>
       </header>
       {children}
     </main>
