@@ -29,6 +29,9 @@ const PatchBody = z.object({
   status: AccountStatus.optional(),
   dryRun: z.boolean().optional(),
   moderationPaused: z.boolean().optional(),
+  replyCapPerPostPerHour: z.number().int().positive().optional(),
+  replyCapPerAccountPerHour: z.number().int().positive().optional(),
+  blocklist: z.array(z.string().min(1)).optional(),
 });
 
 export type AccountView = Omit<Account, "accessTokenEncrypted">;
