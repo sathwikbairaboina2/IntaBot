@@ -32,6 +32,7 @@ const EnvSchema = z.object({
   META_APP_SECRET: optionalString(z.string().min(1)),
   META_WEBHOOK_VERIFY_TOKEN: optionalString(z.string().min(1)),
   ANTHROPIC_API_KEY: optionalString(z.string().min(1)),
+  INSTAGRAM_MODE: z.enum(["fake", "live"]).default("fake"),
 });
 
 export interface AppConfig {
@@ -45,6 +46,8 @@ export interface AppConfig {
   meta: { appId?: string; appSecret?: string; webhookVerifyToken?: string };
   /** Optional: when absent the deterministic FakeCopyWriter is used. */
   anthropicApiKey?: string;
+  /** "live" swaps FakeInstagramAdapter for the real Graph adapter. */
+  instagramMode: "fake" | "live";
 }
 
 export function parseEnv(raw: NodeJS.ProcessEnv | Record<string, string | undefined>): AppConfig {
@@ -78,5 +81,6 @@ export function parseEnv(raw: NodeJS.ProcessEnv | Record<string, string | undefi
       webhookVerifyToken: e.META_WEBHOOK_VERIFY_TOKEN,
     },
     anthropicApiKey: e.ANTHROPIC_API_KEY,
+    instagramMode: e.INSTAGRAM_MODE,
   };
 }
