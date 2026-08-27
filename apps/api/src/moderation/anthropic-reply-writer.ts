@@ -2,31 +2,18 @@ import Anthropic from "@anthropic-ai/sdk";
 import { Inject, Injectable } from "@nestjs/common";
 import { z } from "zod";
 import { AppConfigService } from "../config/config.service";
+import { REPLY_OUTPUT_SCHEMA, buildReplyPrompt } from "../llm/prompts";
 import type { ReplyInput, ReplyWriterPort } from "./reply-writer.port";
 import { ReplyRefusalError } from "./reply-writer.port";
 
 export const REPLY_MODEL = "claude-opus-5";
 
+// Shared with the Ollama reply writer so both providers ask for the same thing.
+export { buildReplyPrompt };
+
 const ReplyPayload = z.object({ text: z.string().min(1) });
 
-const OUTPUT_SCHEMA = {
-  type: "object",
-  properties: { text: { type: "string" } },
-  required: ["text"],
-  additionalProperties: false,
-} as const;
-
-export function buildReplyPrompt(input: ReplyInput): string {
-  return [
-    `Write a short public reply (under 40 words) to this Instagram comment.`,
-    ``,
-    `Post caption: ${input.postCaption}`,
-    `Comment: ${input.commentText}`,
-    `Classified intent: ${input.classification.intent}, sentiment: ${input.classification.sentiment}`,
-    ``,
-    `Reply warmly, in the brand voice, without promising anything specific.`,
-  ].join("\n");
-}
+const OUTPUT_SCHEMA = REPLY_OUTPUT_SCHEMA;
 
 @Injectable()
 export class AnthropicReplyWriter implements ReplyWriterPort {

@@ -2,22 +2,15 @@ import Anthropic from "@anthropic-ai/sdk";
 import { Inject, Injectable } from "@nestjs/common";
 import { Classification, ClassificationSchema } from "@intabot/shared";
 import { AppConfigService } from "../config/config.service";
+import { CLASSIFICATION_OUTPUT_SCHEMA, buildClassifyPrompt } from "../llm/prompts";
 import type { ClassifyInput, CommentClassifierPort } from "./comment-classifier.port";
 
 export const CLASSIFIER_MODEL = "claude-opus-5";
 
-const OUTPUT_SCHEMA = {
-  type: "object",
-  properties: {
-    sentiment: { type: "string", enum: ["positive", "neutral", "negative"] },
-    intent: { type: "string", enum: ["question", "praise", "complaint", "spam", "other"] },
-    toxicity: { type: "number", minimum: 0, maximum: 1 },
-    isSpam: { type: "boolean" },
-    needsHuman: { type: "boolean" },
-  },
-  required: ["sentiment", "intent", "toxicity", "isSpam", "needsHuman"],
-  additionalProperties: false,
-} as const;
+// Shared with the Ollama classifier so both providers ask for the same thing.
+export { buildClassifyPrompt };
+
+const OUTPUT_SCHEMA = CLASSIFICATION_OUTPUT_SCHEMA;
 
 /** A refusal means the model would not touch the comment — which is exactly
  * the definition of a comment that needs a human. */
@@ -28,20 +21,6 @@ export const REFUSAL_CLASSIFICATION: Classification = {
   isSpam: false,
   needsHuman: true,
 };
-
-export function buildClassifyPrompt(input: ClassifyInput): string {
-  return [
-    `Classify this Instagram comment left on a business account's post.`,
-    ``,
-    `Post caption: ${input.postCaption}`,
-    `Account voice: ${input.accountVoice}`,
-    ``,
-    `Comment: ${input.commentText}`,
-    ``,
-    `Mark needsHuman true for complaints, legal or safety topics, purchase`,
-    `disputes, or anything a bot should not answer on a brand's behalf.`,
-  ].join("\n");
-}
 
 @Injectable()
 export class AnthropicCommentClassifier implements CommentClassifierPort {

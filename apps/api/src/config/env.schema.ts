@@ -33,6 +33,13 @@ const EnvSchema = z.object({
   META_WEBHOOK_VERIFY_TOKEN: optionalString(z.string().min(1)),
   ANTHROPIC_API_KEY: optionalString(z.string().min(1)),
   INSTAGRAM_MODE: z.enum(["fake", "live"]).default("fake"),
+  /**
+   * Which implementation backs the three model roles. Unset keeps the original
+   * behaviour: a key means Anthropic, no key means the deterministic fakes.
+   */
+  LLM_PROVIDER: optionalString(z.enum(["fake", "anthropic", "ollama"])),
+  OLLAMA_BASE_URL: z.string().url().default("http://localhost:11437"),
+  OLLAMA_MODEL: z.string().min(1).default("qwen3.6:27b"),
 });
 
 export interface AppConfig {
@@ -48,6 +55,9 @@ export interface AppConfig {
   anthropicApiKey?: string;
   /** "live" swaps FakeInstagramAdapter for the real Graph adapter. */
   instagramMode: "fake" | "live";
+  /** Resolved implementation for the copy writer, classifier and reply writer. */
+  llmProvider: "fake" | "anthropic" | "ollama";
+  ollama: { baseUrl: string; model: string };
 }
 
 export function parseEnv(raw: NodeJS.ProcessEnv | Record<string, string | undefined>): AppConfig {
@@ -82,5 +92,9 @@ export function parseEnv(raw: NodeJS.ProcessEnv | Record<string, string | undefi
     },
     anthropicApiKey: e.ANTHROPIC_API_KEY,
     instagramMode: e.INSTAGRAM_MODE,
+    // An explicit provider wins; otherwise the pre-existing rule stands, so a
+    // checkout that never heard of LLM_PROVIDER behaves exactly as before.
+    llmProvider: e.LLM_PROVIDER ?? (e.ANTHROPIC_API_KEY ? "anthropic" : "fake"),
+    ollama: { baseUrl: e.OLLAMA_BASE_URL, model: e.OLLAMA_MODEL },
   };
 }

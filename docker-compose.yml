@@ -15,6 +15,19 @@ services:
     image: redis:7.4-alpine
     ports: ["6479:6379"]
 
+  # IntaBot's own Ollama. It could borrow another project's container, but the
+  # newer Qwen weights need a newer Ollama than those are pinned to, and one
+  # stack's model upgrade should not be able to break another's.
+  ollama:
+    container_name: intabot-ollama
+    image: ollama/ollama:latest
+    ports: ["11437:11434"]
+    volumes: ["ollama-models:/root/.ollama"]
+    deploy:
+      resources:
+        reservations:
+          devices: [{ driver: nvidia, count: 1, capabilities: [gpu] }]
+
   minio:
     container_name: intabot-minio
     image: minio/minio:RELEASE.2024-11-07T00-52-20Z
@@ -27,3 +40,4 @@ services:
 
 volumes:
   minio-data:
+  ollama-models:

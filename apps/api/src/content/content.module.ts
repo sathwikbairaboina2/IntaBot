@@ -3,6 +3,7 @@ import { AppConfigService } from "../config/config.service";
 import { AnthropicCopyWriter } from "./anthropic-copy-writer";
 import { COPY_WRITER } from "./copy-writer.port";
 import { FakeCopyWriter } from "./fake-copy-writer";
+import { OllamaCopyWriter } from "./ollama-copy-writer";
 
 @Module({
   providers: [
@@ -10,10 +11,14 @@ import { FakeCopyWriter } from "./fake-copy-writer";
     {
       provide: COPY_WRITER,
       inject: [AppConfigService, FakeCopyWriter],
-      // The fake is the default. A real key opts in to real generation, so
-      // tests and a fresh checkout never need credentials.
-      useFactory: (config: AppConfigService, fake: FakeCopyWriter) =>
-        config.anthropicApiKey ? new AnthropicCopyWriter(config) : fake,
+      // The fake stays the default. LLM_PROVIDER opts in to a real writer, and
+      // when it is unset a present ANTHROPIC_API_KEY still selects Anthropic,
+      // exactly as before.
+      useFactory: (config: AppConfigService, fake: FakeCopyWriter) => {
+        if (config.llmProvider === "ollama") return new OllamaCopyWriter(config);
+        if (config.llmProvider === "anthropic") return new AnthropicCopyWriter(config);
+        return fake;
+      },
     },
   ],
   exports: [COPY_WRITER, FakeCopyWriter],

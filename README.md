@@ -10,7 +10,7 @@ Self-hosted agentic Instagram management for a small number of Business accounts
 
 - Node.js 22+
 - pnpm 9+
-- Docker (DynamoDB Local, Redis, MinIO)
+- Docker (DynamoDB Local, Redis, MinIO, and Ollama if you want local models)
 
 ## Ports
 
@@ -25,6 +25,7 @@ environment differs.
 | DynamoDB Local | 8200 |
 | Redis | 6479 |
 | MinIO (API / console) | 9200 / 9201 |
+| Ollama | 11437 |
 
 ## First run
 
@@ -68,9 +69,42 @@ With `pnpm dev` running and an account created:
    machine and stops short of Instagram. Published dry-run posts carry an
    `igMediaId` starting `dryrun-`.
 
-Real caption generation needs `ANTHROPIC_API_KEY` in `.env`; without it the
+Real caption generation needs a model provider (see below); without one the
 deterministic `FakeCopyWriter` is used. Real publishing needs Meta setup
 (Phase 0), `INSTAGRAM_MODE=live`, and `dryRun: false` on the account.
+
+## Choosing a model provider
+
+`LLM_PROVIDER` picks what backs the copy writer, the comment classifier and the
+reply writer. Leaving it blank keeps the original rule — a present
+`ANTHROPIC_API_KEY` means Anthropic, no key means the fakes.
+
+| Value | Backed by | Needs |
+| --- | --- | --- |
+| `fake` | Deterministic stubs | nothing; the test default |
+| `anthropic` | `claude-opus-5` | `ANTHROPIC_API_KEY` |
+| `ollama` | A local model | the `ollama` service and one `ollama pull` |
+
+For local models:
+
+```bash
+pnpm infra:up
+docker exec intabot-ollama ollama pull qwen3.6:27b
+# then in .env:
+#   LLM_PROVIDER=ollama
+#   OLLAMA_MODEL=qwen3.6:27b
+```
+
+IntaBot runs its own Ollama container rather than borrowing another project's:
+newer Qwen weights refuse to load on an older Ollama, and one stack's model
+upgrade must not be able to break another's.
+
+A local model has no equivalent of Anthropic's `stop_reason: "refusal"`, so
+unusable output is the only signal it can give. `OllamaClient` retries once and
+then raises `OllamaSchemaError`, which each adapter maps onto the existing
+human-in-the-loop path: `needsAttention` on a post, `needsHuman` on a
+classification, `reply-refused` escalation on a reply. A local model that cannot
+answer produces a work item, never a half-formed public reply.
 
 ## Trying the moderation loop
 

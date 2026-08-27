@@ -2,6 +2,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import { Inject, Injectable } from "@nestjs/common";
 import { z } from "zod";
 import { AppConfigService } from "../config/config.service";
+import { DRAFT_OUTPUT_SCHEMA, buildDraftPrompt } from "../llm/prompts";
 import {
   CopyWriterRefusalError,
   type CopyWriterPort,
@@ -11,41 +12,17 @@ import {
 
 export const DEFAULT_MODEL = "claude-opus-5";
 
+// The prompt and schema are shared with the Ollama adapter; re-exported here so
+// existing callers and tests keep importing them from the writer they belong to.
+export { buildDraftPrompt };
+
 const DraftPayload = z.object({
   caption: z.string().min(1),
   hashtags: z.array(z.string()),
   altText: z.string().min(1),
 });
 
-const OUTPUT_SCHEMA = {
-  type: "object",
-  properties: {
-    caption: { type: "string" },
-    hashtags: { type: "array", items: { type: "string" } },
-    altText: { type: "string" },
-  },
-  required: ["caption", "hashtags", "altText"],
-  additionalProperties: false,
-} as const;
-
-export function buildDraftPrompt(input: DraftInput): string {
-  const recent = input.recentCaptions.length
-    ? input.recentCaptions.map((c) => `- ${c}`).join("\n")
-    : "- (none yet)";
-
-  return [
-    `Write an Instagram caption for a ${input.format}.`,
-    ``,
-    `Brand voice: ${input.accountVoice}`,
-    `Media type: ${input.mediaMeta.contentType}`,
-    ``,
-    `Recent captions from this account. Do not repeat their phrasing, structure, or opening:`,
-    recent,
-    ``,
-    `Return a caption, a short list of relevant hashtags, and alt text describing`,
-    `the image for a screen reader. Keep the caption under 300 characters.`,
-  ].join("\n");
-}
+const OUTPUT_SCHEMA = DRAFT_OUTPUT_SCHEMA;
 
 @Injectable()
 export class AnthropicCopyWriter implements CopyWriterPort {
