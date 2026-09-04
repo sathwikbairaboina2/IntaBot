@@ -1,0 +1,606 @@
+<title>IntaBot Handbook</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,600;12..96,700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  :root {
+    --ground: #f4f4f8;
+    --surface: #ffffff;
+    --surface-2: #f7f7fb;
+    --border: #dcdce6;
+    --divider: #e7e7ef;
+    --text: #191922;
+    --dim: #4f4f5e;
+    --faint: #82828f;
+    --accent: #6247d6;
+    --accent-soft: rgba(98, 71, 214, 0.10);
+    --live: #187a4b;
+    --live-soft: rgba(24, 122, 75, 0.10);
+    --warn: #9a6a10;
+    --warn-soft: rgba(154, 106, 16, 0.10);
+    --code-bg: #f0f0f6;
+    --display: "Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+    --body: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+    --mono: "IBM Plex Mono", Consolas, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ground: #0c0c11;
+      --surface: #15151c;
+      --surface-2: #1b1b24;
+      --border: #262630;
+      --divider: #1f1f29;
+      --text: #e9e9ef;
+      --dim: #a2a2b1;
+      --faint: #71717f;
+      --accent: #8b74ff;
+      --accent-soft: rgba(139, 116, 255, 0.16);
+      --live: #3fbf7f;
+      --live-soft: rgba(63, 191, 127, 0.14);
+      --warn: #e0a84a;
+      --warn-soft: rgba(224, 168, 74, 0.14);
+      --code-bg: #101017;
+    }
+  }
+  :root[data-theme="dark"] {
+    --ground: #0c0c11;
+    --surface: #15151c;
+    --surface-2: #1b1b24;
+    --border: #262630;
+    --divider: #1f1f29;
+    --text: #e9e9ef;
+    --dim: #a2a2b1;
+    --faint: #71717f;
+    --accent: #8b74ff;
+    --accent-soft: rgba(139, 116, 255, 0.16);
+    --live: #3fbf7f;
+    --live-soft: rgba(63, 191, 127, 0.14);
+    --warn: #e0a84a;
+    --warn-soft: rgba(224, 168, 74, 0.14);
+    --code-bg: #101017;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--ground);
+    color: var(--text);
+    font-family: var(--body);
+    font-size: 15px;
+    line-height: 1.65;
+  }
+  .frame {
+    display: grid;
+    grid-template-columns: 218px minmax(0, 1fr);
+    gap: 48px;
+    max-width: 1080px;
+    margin: 0 auto;
+    padding: 0 28px 96px;
+  }
+  @media (max-width: 860px) {
+    .frame { grid-template-columns: minmax(0, 1fr); gap: 0; }
+    nav.toc { display: none; }
+  }
+
+  nav.toc {
+    position: sticky;
+    top: 0;
+    align-self: start;
+    height: 100vh;
+    overflow-y: auto;
+    padding: 44px 0 32px;
+    font-size: 12.5px;
+  }
+  nav.toc .brand {
+    font-family: var(--display);
+    font-weight: 700;
+    font-size: 17px;
+    letter-spacing: -0.01em;
+    margin-bottom: 4px;
+  }
+  nav.toc .brand-sub {
+    color: var(--faint);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    margin-bottom: 24px;
+  }
+  nav.toc a {
+    display: block;
+    color: var(--dim);
+    text-decoration: none;
+    padding: 5px 10px;
+    border-left: 2px solid var(--divider);
+  }
+  nav.toc a:hover, nav.toc a:focus-visible {
+    color: var(--text);
+    border-left-color: var(--accent);
+    outline: none;
+  }
+
+  main { padding-top: 44px; min-width: 0; }
+
+  header.hero { margin-bottom: 56px; }
+  .hero h1 {
+    font-family: var(--display);
+    font-size: clamp(34px, 6vw, 52px);
+    font-weight: 700;
+    letter-spacing: -0.025em;
+    line-height: 1.05;
+    margin: 0 0 14px;
+    text-wrap: balance;
+  }
+  .hero h1 .dim { color: var(--faint); font-weight: 500; }
+  .hero p.lede {
+    font-size: 17px;
+    color: var(--dim);
+    max-width: 58ch;
+    margin: 0 0 20px;
+  }
+  .hero .facts {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    font-family: var(--mono);
+    font-size: 11.5px;
+  }
+  .hero .facts span {
+    padding: 3px 10px;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    color: var(--dim);
+    background: var(--surface);
+  }
+  .hero .facts span.hot { color: var(--accent); border-color: var(--accent); background: var(--accent-soft); }
+
+  section { margin-bottom: 64px; }
+  h2 {
+    font-family: var(--display);
+    font-size: 24px;
+    font-weight: 600;
+    letter-spacing: -0.015em;
+    margin: 0 0 6px;
+    scroll-margin-top: 24px;
+  }
+  .kicker {
+    font-family: var(--mono);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: var(--accent);
+    margin-bottom: 6px;
+  }
+  h3 {
+    font-family: var(--display);
+    font-size: 16.5px;
+    font-weight: 600;
+    margin: 28px 0 8px;
+  }
+  p { margin: 0 0 14px; max-width: 68ch; }
+  p.note { color: var(--dim); font-size: 13.5px; }
+  a { color: var(--accent); }
+
+  code {
+    font-family: var(--mono);
+    font-size: 12.5px;
+    background: var(--code-bg);
+    border: 1px solid var(--divider);
+    border-radius: 4px;
+    padding: 1px 5px;
+  }
+  pre {
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px 16px;
+    overflow-x: auto;
+    font-family: var(--mono);
+    font-size: 12.5px;
+    line-height: 1.6;
+  }
+  pre code { background: none; border: 0; padding: 0; }
+
+  .scroll { overflow-x: auto; }
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    font-size: 13.5px;
+    margin: 10px 0 6px;
+  }
+  th {
+    text-align: left;
+    font-family: var(--mono);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--faint);
+    font-weight: 500;
+    padding: 8px 14px 8px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  td {
+    padding: 9px 14px 9px 0;
+    border-bottom: 1px solid var(--divider);
+    vertical-align: top;
+  }
+  td.num { font-family: var(--mono); font-size: 12.5px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  td strong { font-weight: 600; }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 18px 20px;
+  }
+  .grid-2 {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 14px;
+    margin: 14px 0;
+  }
+  .card h4 {
+    margin: 0 0 6px;
+    font-family: var(--display);
+    font-size: 14.5px;
+    font-weight: 600;
+  }
+  .card p { font-size: 13.5px; color: var(--dim); margin: 0; max-width: none; }
+
+  .pill {
+    display: inline-block;
+    font-family: var(--mono);
+    font-size: 10.5px;
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    padding: 1px 8px;
+    border-radius: 999px;
+    vertical-align: 2px;
+    margin-left: 8px;
+  }
+  .pill.done { background: var(--live-soft); color: var(--live); }
+  .pill.next { background: var(--accent-soft); color: var(--accent); }
+  .pill.block { background: var(--warn-soft); color: var(--warn); }
+  .pill.later { background: var(--code-bg); color: var(--faint); border: 1px solid var(--divider); }
+
+  figure { margin: 22px 0; }
+  figure svg { max-width: 100%; height: auto; display: block; }
+  figcaption {
+    font-size: 12.5px;
+    color: var(--faint);
+    margin-top: 10px;
+    max-width: 70ch;
+  }
+
+  ol.steps { padding-left: 0; margin: 14px 0; list-style: none; counter-reset: step; max-width: 70ch; }
+  ol.steps li {
+    counter-increment: step;
+    position: relative;
+    padding: 0 0 16px 44px;
+  }
+  ol.steps li::before {
+    content: counter(step);
+    position: absolute;
+    left: 0; top: 1px;
+    width: 26px; height: 26px;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--accent);
+    font-family: var(--mono);
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  ol.steps li strong { display: block; margin-bottom: 2px; }
+  ol.steps li p { font-size: 13.5px; color: var(--dim); margin: 0; }
+
+  ul.tight { margin: 8px 0 14px; padding-left: 20px; max-width: 68ch; }
+  ul.tight li { margin-bottom: 6px; }
+
+  .callout {
+    border-left: 3px solid var(--warn);
+    background: var(--surface);
+    border-radius: 0 8px 8px 0;
+    padding: 12px 16px;
+    font-size: 13.5px;
+    color: var(--dim);
+    max-width: 70ch;
+    margin: 16px 0;
+  }
+  .callout strong { color: var(--text); }
+</style>
+
+<div class="frame">
+<nav class="toc">
+  <div class="brand">IntaBot</div>
+  <div class="brand-sub">Handbook</div>
+  <a href="#overview">Overview</a>
+  <a href="#flow-content">Flow: content loop</a>
+  <a href="#flow-moderation">Flow: moderation</a>
+  <a href="#flow-llm">Flow: model failure</a>
+  <a href="#flow-auth">Flow: auth</a>
+  <a href="#api">API + Swagger</a>
+  <a href="#running">Running it</a>
+  <a href="#testing">Testing</a>
+</nav>
+
+<main>
+<header class="hero">
+  <h1>IntaBot <span class="dim">— agentic Instagram management, self-hosted</span></h1>
+  <p class="lede">Upload a picture; a worker writes the caption and picks the slot; you approve; a state machine publishes it. Comments come back through a webhook, get classified, and either get an auto-reply in the account voice or land on a human queue.</p>
+  <div class="facts">
+    <span>NestJS + Next.js</span>
+    <span class="hot">API :4100</span>
+    <span>dashboard :3100</span>
+    <span class="hot">Swagger /docs</span>
+    <span>BullMQ on Redis :6479</span>
+    <span>DynamoDB :8200 · MinIO :9200</span>
+  </div>
+</header>
+
+<section id="overview">
+  <div class="kicker">What it is</div>
+  <h2>A small number of Business accounts, run by machine, gated by a human</h2>
+<p>IntaBot manages Instagram Business accounts end to end: drafting posts, scheduling them,
+publishing through the Graph API, and moderating the comments that come back. It is built for
+a handful of accounts, self-hosted, with every model call replaceable by a deterministic fake.</p>
+
+<p>The organising rule is that <strong>a model that cannot answer produces a work item, never a
+half-formed public reply</strong>. Every path where generation can fail ends on a human queue.</p>
+
+<div class="grid-2">
+  <div class="card">
+    <h4>apps/api</h4>
+    <p>NestJS. Cookie-session auth, accounts, media, approvals, moderation, the Instagram
+    webhook, and five BullMQ workers in the same process.</p>
+  </div>
+  <div class="card">
+    <h4>apps/web</h4>
+    <p>Next.js operator dashboard on :3100 — upload, approvals, moderation.</p>
+  </div>
+  <div class="card">
+    <h4>packages/shared</h4>
+    <p>Zod schemas. <code>PostStatus</code>, <code>CommentStatus</code>, and the account shape
+    are defined here and nowhere else.</p>
+  </div>
+  <div class="card">
+    <h4>Adapters, all swappable</h4>
+    <p><code>instagram.port.ts</code> and <code>copy-writer.port.ts</code> each have a fake and
+    a real implementation. The whole loop runs offline.</p>
+  </div>
+</div>
+</section>
+
+<section id="flow-content">
+  <div class="kicker">Flow 1 of 4</div>
+  <h2>Upload → draft → approve → publish</h2>
+<pre><code>POST /media  (operator uploads a JPEG for an account)
+   └─► draft queue
+        └─ drafting.ts: copy writer writes a caption, slot-planner picks a time
+             └─ Post { status: PENDING_APPROVAL }   ← appears on /approvals
+
+operator ──► POST /approvals/:id/approve      (caption editable first)
+                └─ Post { status: APPROVED }
+                     └─► publish-scan queue (due posts) ──► publish queue
+                          └─ create IG container ──► poll-container queue
+                               └─ container ready ──► publish
+                                    └─ Post { status: PUBLISHED, igMediaId, permalink }
+
+operator ──► POST /approvals/:id/reject  →  Post { status: REJECTED }</code></pre>
+
+<h3>Post states</h3>
+<p><code>DRAFT → PENDING_APPROVAL → APPROVED → PUBLISHING → PUBLISHED</code>, with
+<code>FAILED</code> and <code>REJECTED</code> as terminal branches. Every post carries a
+<code>version</code>, so a stale approval from a second browser tab cannot overwrite a newer
+caption.</p>
+
+<h3>Dry run is the default</h3>
+<div class="callout">Accounts default to <code>dryRun: true</code>. Publishing then runs the
+<em>full</em> state machine — container creation, polling, the lot — and stops short of
+Instagram. Dry-run posts carry an <code>igMediaId</code> beginning <code>dryrun-</code>, so you
+can tell at a glance which side of the line a post is on. Real publishing needs the Meta setup,
+<code>INSTAGRAM_MODE=live</code>, <em>and</em> <code>dryRun: false</code> on the account.</div>
+
+<h3>Five queues, one process</h3>
+<div class="scroll">
+<table>
+  <thead><tr><th>Queue</th><th>Processor</th><th>Job</th></tr></thead>
+  <tbody>
+    <tr><td class="num">draft</td><td class="num">draft.processor.ts</td><td>Write the caption and pick the slot.</td></tr>
+    <tr><td class="num">publish-scan</td><td class="num">publish-scan.processor.ts</td><td>Find approved posts whose slot has arrived.</td></tr>
+    <tr><td class="num">publish</td><td class="num">publish.processor.ts</td><td>Create the Instagram media container.</td></tr>
+    <tr><td class="num">poll-container</td><td class="num">poll-container.processor.ts</td><td>Wait for the container to become publishable, then publish.</td></tr>
+    <tr><td class="num">moderation</td><td class="num">moderation.processor.ts</td><td>Classify a comment and run the policy gate.</td></tr>
+  </tbody>
+</table>
+</div>
+<p class="note">Queue names are prefixed per Vitest worker (<code>queuePrefix()</code>), because
+Redis is shared state and concurrent test files would otherwise consume each other's jobs —
+the same reason DynamoDB table names are scoped by <code>VITEST_WORKER_ID</code>.</p>
+</section>
+
+<section id="flow-moderation">
+  <div class="kicker">Flow 2 of 4</div>
+  <h2>A comment arrives and something happens to it</h2>
+<pre><code>Instagram ──► POST /webhooks/instagram
+                ├─ HMAC verified against META_APP_SECRET
+                ├─ deduplicated
+                └─ enqueued on the moderation queue
+
+moderation.processor
+   ├─ resolve the comment to a published post
+   ├─ SELF-REPLY GUARD: the account's own comments are dropped BEFORE
+   │    classification — the alternative is the bot talking to itself forever
+   ├─ classify  { sentiment, intent, toxicity, isSpam, needsHuman }
+   └─ policy gate
+        ├─ account.moderationPaused        → classify, never reply
+        ├─ blocklist term hit              → ESCALATED
+        ├─ needsHuman                      → ESCALATED
+        ├─ over replyCapPerPostPerHour
+        │  or replyCapPerAccountPerHour    → ESCALATED
+        ├─ isSpam                          → IGNORED
+        └─ otherwise                       → AUTO_REPLIED in the account voice</code></pre>
+
+<p>Comment states: <code>RECEIVED → AUTO_REPLIED | ESCALATED | IGNORED</code>, and
+<code>ESCALATED → HUMAN_REPLIED</code> once an operator acts at
+<a href="http://localhost:3100/moderation">/moderation</a> with
+<code>POST /moderation/:igCommentId/reply</code> or
+<code>POST /moderation/:igCommentId/dismiss</code>.</p>
+
+<p><strong>Every decision — automatic or human — lands on the audit log with the rule that
+fired.</strong> Reply caps and the blocklist are per-account fields set through
+<code>PATCH /accounts/:id</code>: <code>replyCapPerPostPerHour</code>,
+<code>replyCapPerAccountPerHour</code>, <code>blocklist</code>.</p>
+
+<p class="note">Without Meta credentials the webhook route returns <code>503</code>. The e2e
+suite signs its own webhooks with test secrets, so the whole loop still runs offline.</p>
+</section>
+
+<section id="flow-llm">
+  <div class="kicker">Flow 3 of 4</div>
+  <h2>What happens when the model will not answer</h2>
+<p><code>LLM_PROVIDER</code> picks what backs the copy writer, the comment classifier and the
+reply writer.</p>
+
+<div class="scroll">
+<table>
+  <thead><tr><th>Value</th><th>Backed by</th><th>Needs</th></tr></thead>
+  <tbody>
+    <tr><td class="num">fake</td><td>Deterministic stubs</td><td>nothing; the test default</td></tr>
+    <tr><td class="num">anthropic</td><td><code>claude-opus-5</code></td><td><code>ANTHROPIC_API_KEY</code></td></tr>
+    <tr><td class="num">ollama</td><td>A local model</td><td>the <code>ollama</code> service and one <code>ollama pull</code></td></tr>
+  </tbody>
+</table>
+</div>
+<p class="note">Leaving <code>LLM_PROVIDER</code> blank keeps the original rule: a present
+<code>ANTHROPIC_API_KEY</code> means Anthropic, no key means the fakes.</p>
+
+<p>A local model has no equivalent of Anthropic's <code>stop_reason: "refusal"</code>, so
+unusable output is the only signal it can give. <code>OllamaClient</code> retries once and then
+raises <code>OllamaSchemaError</code>, which each adapter maps onto the existing
+human-in-the-loop path:</p>
+
+<ul class="tight">
+  <li>copy writer → <code>needsAttention</code> on the post</li>
+  <li>classifier → <code>needsHuman</code> on the classification</li>
+  <li>reply writer → a <code>reply-refused</code> escalation</li>
+</ul>
+
+<p class="note">IntaBot runs its own Ollama container on <code>:11437</code> rather than
+borrowing another project's: newer Qwen weights refuse to load on an older Ollama, and one
+stack's model upgrade must not be able to break another's.</p>
+</section>
+
+<section id="flow-auth">
+  <div class="kicker">Flow 4 of 4</div>
+  <h2>Operator sign-in</h2>
+<ol class="steps">
+  <li><strong>POST /auth/login <code>{ email, password }</code></strong>
+    <p>Argon2 verify. On success a session row is created and set as the
+    <code>intabot_session</code> cookie — <code>httpOnly</code>, <code>sameSite: lax</code>,
+    <code>secure</code> in production, expiring with the session
+    (<code>SESSION_TTL_HOURS</code>).</p></li>
+  <li><strong>Every guarded route reads that cookie</strong>
+    <p><code>AuthGuard</code> looks it up; there is no bearer token anywhere in this API.</p></li>
+  <li><strong>POST /auth/logout</strong><p>Revokes the session server-side and clears the cookie.</p></li>
+  <li><strong>GET /auth/me</strong><p>Returns the signed-in operator's email.</p></li>
+</ol>
+
+<p>Operators are created from the CLI, which also creates the DynamoDB tables if they do not
+exist — so it is safe as the very first command against a fresh stack:</p>
+<pre><code>pnpm --filter @intabot/api run create-user you@example.com &lt;password&gt;</code></pre>
+
+<p class="note">Instagram access tokens are encrypted at rest with
+<code>TOKEN_ENCRYPTION_KEY</code> (a base64 32-byte value you generate at setup).</p>
+</section>
+
+<section id="api">
+  <div class="kicker">Interface</div>
+  <h2>API reference</h2>
+<p>Swagger UI is at <a href="http://localhost:4100/docs">http://localhost:4100/docs</a>, with
+the raw document at <code>/docs-json</code>. It is wired in
+<code>apps/api/src/main.ts</code> and <strong>mounted only when
+<code>NODE_ENV !== 'production'</code></strong> — the operator dashboard is the only intended
+client, and an unauthenticated route inventory is not worth publishing.</p>
+
+<div class="callout"><strong>"Try it out" needs a browser session, not a token.</strong> Auth
+here is an <code>httpOnly</code> cookie, which Swagger UI cannot set. Run
+<code>POST /auth/login</code> first — from the docs page itself is fine — and the browser
+carries the cookie into every subsequent call. The document declares the cookie scheme as
+<code>session</code> for documentation purposes; there is nothing to paste into Authorize.</div>
+
+<div class="scroll">
+<table>
+  <thead><tr><th>Method</th><th>Path</th><th>What it does</th></tr></thead>
+  <tbody>
+    <tr><td class="num">GET</td><td class="num">/health</td><td>Liveness.</td></tr>
+    <tr><td class="num">POST</td><td class="num">/auth/login</td><td>Sets the session cookie.</td></tr>
+    <tr><td class="num">POST</td><td class="num">/auth/logout</td><td>Revokes the session.</td></tr>
+    <tr><td class="num">GET</td><td class="num">/auth/me</td><td>The signed-in operator.</td></tr>
+    <tr><td class="num">GET</td><td class="num">/accounts</td><td>Every managed account.</td></tr>
+    <tr><td class="num">GET</td><td class="num">/accounts/:id</td><td>One account.</td></tr>
+    <tr><td class="num">POST</td><td class="num">/accounts</td><td>Connect an account (token encrypted at rest).</td></tr>
+    <tr><td class="num">PATCH</td><td class="num">/accounts/:id</td><td><code>dryRun</code>, <code>moderationPaused</code>, reply caps, blocklist, voice.</td></tr>
+    <tr><td class="num">POST</td><td class="num">/media</td><td>Upload media; kicks off drafting.</td></tr>
+    <tr><td class="num">GET</td><td class="num">/approvals</td><td>Posts awaiting a decision.</td></tr>
+    <tr><td class="num">POST</td><td class="num">/approvals/:id/approve</td><td>Approve, with an optional edited caption.</td></tr>
+    <tr><td class="num">POST</td><td class="num">/approvals/:id/reject</td><td>Reject.</td></tr>
+    <tr><td class="num">GET</td><td class="num">/moderation</td><td>Escalated comments.</td></tr>
+    <tr><td class="num">POST</td><td class="num">/moderation/:igCommentId/reply</td><td>Human reply.</td></tr>
+    <tr><td class="num">POST</td><td class="num">/moderation/:igCommentId/dismiss</td><td>Dismiss without replying.</td></tr>
+    <tr><td class="num">GET</td><td class="num">/webhooks/instagram</td><td>Meta's subscription verification challenge.</td></tr>
+    <tr><td class="num">POST</td><td class="num">/webhooks/instagram</td><td>Comment events. HMAC-verified; 503 without Meta credentials.</td></tr>
+  </tbody>
+</table>
+</div>
+</section>
+
+<section id="running">
+  <div class="kicker">Operations</div>
+  <h2>Running it</h2>
+<p>This machine already runs other projects on the conventional ports, so IntaBot uses its own
+throughout.</p>
+
+<div class="scroll">
+<table>
+  <thead><tr><th>Service</th><th>Port</th></tr></thead>
+  <tbody>
+    <tr><td>API</td><td class="num">4100</td></tr>
+    <tr><td>Dashboard</td><td class="num">3100</td></tr>
+    <tr><td>DynamoDB Local</td><td class="num">8200</td></tr>
+    <tr><td>Redis</td><td class="num">6479</td></tr>
+    <tr><td>MinIO (API / console)</td><td class="num">9200 / 9201</td></tr>
+    <tr><td>Ollama</td><td class="num">11437</td></tr>
+  </tbody>
+</table>
+</div>
+
+<pre><code>cp .env.example .env
+node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
+# paste into TOKEN_ENCRYPTION_KEY
+
+pnpm install
+pnpm infra:up
+pnpm --filter @intabot/api run create-user you@example.com &lt;password&gt;
+pnpm dev            # API :4100 and dashboard :3100 together</code></pre>
+
+<p>Or through the devkit:</p>
+<pre><code>powershell -File $dk\intabot\devup.ps1 -CheckOnly -Test</code></pre>
+</section>
+
+<section id="testing">
+  <div class="kicker">Verification</div>
+  <h2>Testing</h2>
+<pre><code>pnpm infra:up
+pnpm test          # everything
+pnpm test:watch</code></pre>
+
+<p>Integration tests run against DynamoDB Local. Each Vitest worker gets its own table
+(<code>intabot_main_test_w&lt;N&gt;</code>) and its own Redis queue prefix, so concurrent test
+files cannot clobber each other.</p>
+</section>
+
+<p class="note">Generated from <code>_devkit/docs/handbook/content/intabot.mjs</code> by
+<code>_devkit/docs/handbook/build.mjs</code>. Edit the content module, not this file.</p>
+</main>
+</div>
