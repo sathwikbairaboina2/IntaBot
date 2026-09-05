@@ -38,8 +38,8 @@ const EnvSchema = z.object({
    * behaviour: a key means Anthropic, no key means the deterministic fakes.
    */
   LLM_PROVIDER: optionalString(z.enum(["fake", "anthropic", "ollama"])),
-  OLLAMA_BASE_URL: z.string().url().default("http://localhost:11437"),
-  OLLAMA_MODEL: z.string().min(1).default("qwen3.6:27b"),
+  OLLAMA_BASE_URL: z.string().url().default("http://localhost:11434"),
+  OLLAMA_MODEL: z.string().min(1).default("qwen3.8:27b"),
 });
 
 export interface AppConfig {

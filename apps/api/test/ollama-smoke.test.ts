@@ -4,7 +4,7 @@ import { OllamaClient } from "../src/llm/ollama.client";
 import { OllamaCommentClassifier } from "../src/moderation/ollama-comment-classifier";
 import { OllamaReplyWriter } from "../src/moderation/ollama-reply-writer";
 
-const BASE = process.env.OLLAMA_BASE_URL ?? "http://localhost:11437";
+const BASE = process.env.OLLAMA_BASE_URL ?? "http://localhost:11434";
 const MODEL = process.env.OLLAMA_MODEL ?? "qwen3.6:27b";
 
 /**

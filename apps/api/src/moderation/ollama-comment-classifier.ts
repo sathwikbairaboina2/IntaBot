@@ -26,7 +26,7 @@ export class OllamaCommentClassifier implements CommentClassifierPort {
       this.model = model ?? clientOrConfig.ollama.model;
     } else {
       this.client = clientOrConfig;
-      this.model = model ?? "qwen3.6:27b";
+      this.model = model ?? "qwen3.8:27b";
     }
   }
 
