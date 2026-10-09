@@ -1,34 +1,23 @@
-import { getAccounts } from "@/lib/api";
+import type { Metadata } from "next";
+import { API_BASE_URL, buildUrl } from "@/lib/http";
+import { getAccounts } from "@/lib/queries";
+import { accountStats, accountStatus, formatDate, tokenExpiry } from "@/lib/view";
+import { AccountsView, type AccountRow } from "./accounts-view";
+
+export const metadata: Metadata = { title: "Accounts" };
 
 export default async function AccountsPage() {
   const accounts = await getAccounts();
-
-  if (accounts.length === 0) {
-    return <p>No accounts connected yet.</p>;
-  }
-
-  return (
-    <table>
-      <thead>
-        <tr>
-          <th>Name</th>
-          <th>Username</th>
-          <th>Status</th>
-          <th>Dry run</th>
-          <th>Token expires</th>
-        </tr>
-      </thead>
-      <tbody>
-        {accounts.map((account) => (
-          <tr key={account.id}>
-            <td>{account.name}</td>
-            <td>@{account.username}</td>
-            <td>{account.status}</td>
-            <td>{account.dryRun ? "on" : "off"}</td>
-            <td>{new Date(account.tokenExpiresAt).toLocaleDateString()}</td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
-  );
+  const now = new Date();
+  const rows: AccountRow[] = accounts.map((a) => ({
+    id: a.id,
+    name: a.name,
+    username: a.username,
+    status: accountStatus(a.status),
+    dryRun: a.dryRun,
+    moderationPaused: a.moderationPaused,
+    expiresOn: formatDate(a.tokenExpiresAt),
+    expiry: tokenExpiry(a.tokenExpiresAt, now),
+  }));
+  return <AccountsView rows={rows} stats={accountStats(accounts, now)} docsUrl={buildUrl(API_BASE_URL, "/docs")} />;
 }

@@ -7,7 +7,7 @@ export interface ModerationActionState {
   error?: string;
 }
 
-const CONFLICT_MESSAGE = "This comment changed elsewhere — refresh and retry.";
+const CONFLICT_MESSAGE = "This comment changed elsewhere. Refresh and try again.";
 
 export async function replyToComment(
   _prev: ModerationActionState,

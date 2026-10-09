@@ -1,37 +1,34 @@
-import { getAccounts, getApprovals } from "@/lib/api";
-import { ApprovalCard } from "./approval-card";
+import type { Metadata } from "next";
+import { AutoRefresh } from "@/components/auto-refresh";
+import { NeedAccount } from "@/components/ui";
+import { getAccounts, getApprovals } from "@/lib/queries";
+import { slotLabel } from "@/lib/view";
+import { ApprovalsView, type ApprovalGroup } from "./approvals-view";
 
-// Drafting completes asynchronously, so the queue is re-fetched on an
-// interval rather than requiring a manual reload. SSE replaces this in
-// Phase 5.
+export const metadata: Metadata = { title: "Approvals" };
+
+// Drafting completes asynchronously. The server answer is cached for 5 s and
+// AutoRefresh re-requests it every 5 s while the tab is visible. SSE replaces
+// this in Phase 5.
 export const revalidate = 5;
 
 export default async function ApprovalsPage() {
   const accounts = await getAccounts();
-  if (accounts.length === 0) return <p>Connect an account first.</p>;
+  if (accounts.length === 0) return <NeedAccount />;
 
-  const sections = await Promise.all(
-    accounts.map(async (account) => ({
-      account,
-      posts: await getApprovals(account.id),
-    })),
-  );
-
-  const total = sections.reduce((n, s) => n + s.posts.length, 0);
-  if (total === 0) return <p>Nothing waiting for approval.</p>;
+  const groups: ApprovalGroup[] = (
+    await Promise.all(
+      accounts.map(async (account) => ({
+        account: { id: account.id, name: account.name, username: account.username, dryRun: account.dryRun },
+        posts: (await getApprovals(account.id)).map((post) => ({ ...post, slot: slotLabel(post.scheduledAt) })),
+      })),
+    )
+  ).filter((group) => group.posts.length > 0);
 
   return (
     <>
-      {sections.map(({ account, posts }) =>
-        posts.length === 0 ? null : (
-          <section key={account.id}>
-            <h2>@{account.username}</h2>
-            {posts.map((post) => (
-              <ApprovalCard key={post.id} post={post} timezone="UTC" />
-            ))}
-          </section>
-        ),
-      )}
+      <AutoRefresh />
+      <ApprovalsView groups={groups} />
     </>
   );
 }
