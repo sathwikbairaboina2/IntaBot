@@ -36,4 +36,12 @@ async function main() {
   }
 }
 
-void main();
+// The Redis connections held by the queues keep the event loop alive after
+// app.close(), so a finished CLI would otherwise hang. Exit once stdout drains.
+main().then(
+  () => process.stdout.write("", () => process.exit(0)),
+  (err: unknown) => {
+    console.error(err);
+    process.exit(1);
+  },
+);
