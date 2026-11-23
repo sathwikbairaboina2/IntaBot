@@ -23,6 +23,10 @@ export interface ReplyResult {
   replyId: string;
 }
 
+export interface PrivateReplyResult {
+  messageId: string;
+}
+
 export interface DateRange {
   from: string;
   to: string;
@@ -38,6 +42,12 @@ export interface InstagramPort {
   getContainerStatus(account: Account, containerId: string): Promise<ContainerStatus>;
   publishContainer(account: Account, containerId: string): Promise<PublishResult>;
   replyToComment(account: Account, commentId: string, text: string): Promise<ReplyResult>;
+  /** Private reply (DM) to a comment, addressed by the comment id. */
+  sendPrivateReply(
+    account: Account,
+    commentId: string,
+    text: string,
+  ): Promise<PrivateReplyResult>;
   getAccountInsights(
     account: Account,
     metrics: string[],

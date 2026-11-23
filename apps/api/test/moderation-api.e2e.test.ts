@@ -99,6 +99,46 @@ describe("moderation api", () => {
     await request(app.getHttpServer()).get("/moderation").set("Cookie", cookie).expect(400);
   });
 
+  it("returns the DM fields of a link-request auto-reply", async () => {
+    const comments = app.get(CommentRepository);
+    const created = await comments.create({
+      igCommentId: "c-link",
+      accountId,
+      postId,
+      igMediaId: "m-1",
+      text: "LINK",
+      fromIgUserId: "992",
+      fromUsername: "seeker",
+    });
+    await comments.transition({
+      postId,
+      igCommentId: "c-link",
+      accountId,
+      expectedStatus: "RECEIVED",
+      expectedVersion: created!.version,
+      nextStatus: "AUTO_REPLIED",
+      patch: {
+        policyRule: "link-request",
+        replyText: "Sent you the link in your DMs.",
+        replyId: "r-2",
+        dmText: "Here is the apply link: https://aiiolar.com/jobs?job=a",
+        dmId: "dm-1",
+      },
+    });
+    const res = await request(app.getHttpServer())
+      .get(`/moderation?accountId=${accountId}`)
+      .set("Cookie", cookie)
+      .expect(200);
+    const row = res.body.recentAutoReplies.find(
+      (c: { igCommentId: string }) => c.igCommentId === "c-link",
+    );
+    expect(row).toMatchObject({
+      policyRule: "link-request",
+      dmText: "Here is the apply link: https://aiiolar.com/jobs?job=a",
+      dmId: "dm-1",
+    });
+  });
+
   it("lists escalated comments and recent auto-replies separately", async () => {
     const res = await request(app.getHttpServer())
       .get(`/moderation?accountId=${accountId}`)

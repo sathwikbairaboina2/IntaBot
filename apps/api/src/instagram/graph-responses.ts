@@ -66,3 +66,10 @@ export function parseReply(json: unknown): { replyId: string } {
   rejectErrors(json);
   return { replyId: IdShape.parse(json).id };
 }
+
+const PrivateReplyShape = z.object({ message_id: z.string().min(1) });
+
+export function parsePrivateReply(json: unknown): { messageId: string } {
+  rejectErrors(json);
+  return { messageId: PrivateReplyShape.parse(json).message_id };
+}

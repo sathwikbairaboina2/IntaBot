@@ -82,6 +82,7 @@ export interface CommentView {
   classification?: ClassificationView;
   policyRule?: string;
   replyText?: string;
+  dmText?: string;
   createdAt: string;
 }
 

@@ -184,6 +184,22 @@ describe("phase 3 schema additions", () => {
     expect(parsed.replyId).toBe("fake-reply-1");
   });
 
+  it("parses a link-request comment with its DM fields", () => {
+    const parsed = CommentSchema.parse({
+      ...comment,
+      status: "AUTO_REPLIED",
+      version: 3,
+      policyRule: "link-request",
+      replyText: "Sent you the link in your DMs.",
+      replyId: "fake-reply-1",
+      dmText: "Here is the apply link: https://aiiolar.com/jobs?job=a",
+      dmId: "fake-dm-1",
+    });
+    expect(parsed.policyRule).toBe("link-request");
+    expect(parsed.dmId).toBe("fake-dm-1");
+    expect(CommentSchema.parse(comment).dmText).toBeUndefined();
+  });
+
   it("rejects an unknown comment status", () => {
     expect(() => CommentSchema.parse({ ...comment, status: "REPLIED" })).toThrow();
   });

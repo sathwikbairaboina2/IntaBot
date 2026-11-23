@@ -106,6 +106,7 @@ export function ModerationView({ groups }: { groups: ModerationGroup[] }) {
                       <div className="auto-text">
                         <b>@{comment.fromUsername}</b> {comment.text}
                         {comment.replyText ? <div className="auto-reply">{comment.replyText}</div> : null}
+                        {comment.dmText ? <div className="auto-reply auto-dm">DM sent: {comment.dmText}</div> : null}
                       </div>
                       <div className="auto-meta">
                         {comment.classification ? (

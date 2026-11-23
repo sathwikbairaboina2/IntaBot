@@ -29,7 +29,7 @@ export interface CreateCommentInput {
 }
 
 export type CommentPatch = Partial<
-  Pick<Comment, "classification" | "policyRule" | "replyText" | "replyId">
+  Pick<Comment, "classification" | "policyRule" | "replyText" | "replyId" | "dmText" | "dmId">
 >;
 
 export interface CommentTransitionArgs {

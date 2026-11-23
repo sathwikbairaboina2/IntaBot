@@ -97,6 +97,18 @@ describe("FakeInstagramAdapter", () => {
     expect(adapter.getReplies()[0]).toMatchObject({ commentId: "cmt-1", text: "Thank you!" });
   });
 
+  it("records private replies and clears them on reset", async () => {
+    const { messageId } = await adapter.sendPrivateReply(account, "cmt-1", "Here is the link");
+    expect(messageId).toMatch(/^fake-dm-/);
+    expect(adapter.getDms()).toEqual([
+      { accountId: "acct-1", commentId: "cmt-1", text: "Here is the link", messageId },
+    ]);
+    const second = await adapter.sendPrivateReply(account, "cmt-2", "x");
+    expect(second.messageId).not.toBe(messageId);
+    adapter.reset();
+    expect(adapter.getDms()).toEqual([]);
+  });
+
   it("returns deterministic account insights for the requested range", async () => {
     const points = await adapter.getAccountInsights(account, ["reach"], {
       from: "2026-08-01",

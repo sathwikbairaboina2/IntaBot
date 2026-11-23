@@ -11,6 +11,7 @@ import {
   parseContainerStatus,
   parsePermalink,
   parsePublish,
+  parsePrivateReply,
   parseReply,
 } from "./graph-responses";
 
@@ -56,6 +57,9 @@ describe("graph response parsers", () => {
     expect(parsePublish(fixture("publish-success"))).toEqual({ igMediaId: "17950009876543210" });
     expect(parsePermalink(fixture("permalink")).permalink).toContain("instagram.com");
     expect(parseReply(fixture("reply-success"))).toEqual({ replyId: "17960001112223334" });
+    expect(parsePrivateReply(fixture("dm-success"))).toEqual({
+      messageId: "aWdfZAG1faXRlbToxOklHTWVzc2FnZAUlEOjE3ODQxNDA",
+    });
   });
 
   it("maps Meta's error envelope to GraphApiError", () => {
@@ -130,6 +134,36 @@ describe("GraphInstagramAdapter", () => {
     expect(result.replyId).toBe("17960001112223334");
     expect(calls[0]!.url).toBe("https://graph.test/c-9/replies");
     expect(String(calls[0]!.init?.body)).toContain("message=Thanks%21");
+  });
+
+  it("sends a private reply to a comment as JSON with the decrypted token", async () => {
+    const { calls, fetchStub } = capture([fixture("dm-success")]);
+    const adapter = new GraphInstagramAdapter(
+      undefined as never,
+      crypto,
+      fetchStub,
+      "https://graph.test",
+    );
+
+    const result = await adapter.sendPrivateReply(account(), "c-9", "Here is the apply link: u");
+    expect(result.messageId).toBe("aWdfZAG1faXRlbToxOklHTWVzc2FnZAUlEOjE3ODQxNDA");
+    expect(calls[0]!.url).toBe("https://graph.test/1784140/messages");
+    const init = calls[0]!.init!;
+    expect(init.method).toBe("POST");
+    expect(JSON.parse(String(init.body))).toEqual({
+      recipient: { comment_id: "c-9" },
+      message: { text: "Here is the apply link: u" },
+    });
+    expect(JSON.stringify(init.headers)).toContain(PLAINTEXT_TOKEN);
+    expect(String(init.body)).not.toContain(PLAINTEXT_TOKEN);
+  });
+
+  it("maps a Meta error on a private reply to GraphApiError", async () => {
+    const { fetchStub } = capture([fixture("error-oauth")]);
+    const adapter = new GraphInstagramAdapter(undefined as never, crypto, fetchStub, "https://graph.test");
+    await expect(adapter.sendPrivateReply(account(), "c-9", "x")).rejects.toBeInstanceOf(
+      GraphApiError,
+    );
   });
 
   it("refuses carousels and insights for now", async () => {

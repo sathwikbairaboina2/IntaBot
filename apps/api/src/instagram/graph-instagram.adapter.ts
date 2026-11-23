@@ -7,6 +7,7 @@ import {
   parseContainerCreated,
   parseContainerStatus,
   parsePermalink,
+  parsePrivateReply,
   parsePublish,
   parseReply,
 } from "./graph-responses";
@@ -16,6 +17,7 @@ import type {
   DateRange,
   InsightPoint,
   InstagramPort,
+  PrivateReplyResult,
   PublishResult,
   ReplyResult,
 } from "./instagram.port";
@@ -52,6 +54,15 @@ export class GraphInstagramAdapter implements InstagramPort {
       method: "POST",
       headers: { "content-type": "application/x-www-form-urlencoded" },
       body: new URLSearchParams(body).toString(),
+    });
+    return res.json();
+  }
+
+  private async postJson(path: string, token: string, body: unknown): Promise<unknown> {
+    const res = await this.fetchImpl(`${this.baseUrl}${path}`, {
+      method: "POST",
+      headers: { "content-type": "application/json", authorization: `Bearer ${token}` },
+      body: JSON.stringify(body),
     });
     return res.json();
   }
@@ -115,6 +126,19 @@ export class GraphInstagramAdapter implements InstagramPort {
       await this.post(`/${commentId}/replies`, {
         access_token: this.token(account),
         message: text,
+      }),
+    );
+  }
+
+  async sendPrivateReply(
+    account: Account,
+    commentId: string,
+    text: string,
+  ): Promise<PrivateReplyResult> {
+    return parsePrivateReply(
+      await this.postJson(`/${account.igUserId}/messages`, this.token(account), {
+        recipient: { comment_id: commentId },
+        message: { text },
       }),
     );
   }

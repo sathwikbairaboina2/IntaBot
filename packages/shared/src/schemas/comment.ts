@@ -32,10 +32,13 @@ export const CommentSchema = z.object({
   status: CommentStatus,
   version: z.number().int().nonnegative(),
   classification: ClassificationSchema.optional(),
-  /** The policy-gate rule (or human action) that produced the current status. */
+  /** The policy-gate rule (or human action; "link-request" for the keyword DM) that produced the current status. */
   policyRule: z.string().optional(),
   replyText: z.string().optional(),
   replyId: z.string().optional(),
+  /** Private message sent for a link request (policyRule "link-request"). */
+  dmText: z.string().optional(),
+  dmId: z.string().optional(),
   createdAt: isoDateTime,
   updatedAt: isoDateTime,
 });

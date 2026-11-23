@@ -13,6 +13,7 @@ import {
   CommentTransitionConflictError,
 } from "../moderation/comment.repository";
 import { IgMediaRefRepository } from "../moderation/ig-media-ref.repository";
+import { isLinkRequest } from "../moderation/link-request";
 import { policyGate } from "../moderation/policy-gate";
 import { ReplyCapService } from "../moderation/reply-cap.service";
 import { REPLY_WRITER, type ReplyWriterPort } from "../moderation/reply-writer.port";
@@ -27,6 +28,19 @@ export interface ModerationJobData {
   fromUsername: string;
   text: string;
 }
+
+export const LINK_REQUEST_RULE = "link-request";
+export const LINK_REQUEST_REPLY = "Sent you the link in your DMs.";
+
+/** Stands in for the model's verdict so the gate's paused/blocklist/cap rules
+ * still apply to a keyword comment that never reaches the classifier. */
+const NEUTRAL_CLASSIFICATION: Classification = {
+  sentiment: "neutral",
+  intent: "question",
+  toxicity: 0,
+  isSpam: false,
+  needsHuman: false,
+};
 
 export type ModerationOutcome =
   | "unknown-media"
@@ -84,6 +98,26 @@ export class ModerationProcessor {
     const post = await this.posts.get(ref.accountId, ref.postId);
     const postCaption = post?.caption ?? "";
 
+    // A keyword comment on a post with an apply link is answered by a fixed
+    // rule, not the model: public reply plus a private DM with the link.
+    if (post?.applyUrl && isLinkRequest(data.text, account.linkKeyword ?? "LINK")) {
+      const caps = await this.replyCaps.check(account.id, ref.postId, account);
+      const verdict = policyGate({
+        account,
+        fromIgUserId: data.fromIgUserId,
+        commentText: data.text,
+        classification: NEUTRAL_CLASSIFICATION,
+        ...caps,
+      });
+      if (verdict.action === "escalate") {
+        return this.settle(account, comment, "ESCALATED", verdict.rule, null);
+      }
+      if (verdict.action === "ignore") {
+        return this.settle(account, comment, "IGNORED", verdict.rule, null);
+      }
+      return this.replyWithLink(account, comment, post.applyUrl);
+    }
+
     const classification = await this.classifier.classify({
       commentText: data.text,
       postCaption,
@@ -107,6 +141,59 @@ export class ModerationProcessor {
     }
 
     return this.reply(account, comment, classification, postCaption, verdict.rule);
+  }
+
+  /** Claim first, then the public reply and the DM; a duplicated job does neither twice. */
+  private async replyWithLink(
+    account: Account,
+    comment: Comment,
+    applyUrl: string,
+  ): Promise<{ outcome: ModerationOutcome }> {
+    let claimed: Comment;
+    try {
+      claimed = await this.comments.transition({
+        postId: comment.postId,
+        igCommentId: comment.igCommentId,
+        accountId: comment.accountId,
+        expectedStatus: "RECEIVED",
+        expectedVersion: comment.version,
+        nextStatus: "AUTO_REPLIED",
+        patch: { policyRule: LINK_REQUEST_RULE },
+      });
+    } catch (err) {
+      if (err instanceof CommentTransitionConflictError) {
+        this.logger.log(`comment ${comment.igCommentId} already claimed - skipping`);
+        return { outcome: "already-claimed" };
+      }
+      throw err;
+    }
+
+    const replyText = LINK_REQUEST_REPLY;
+    const dmText = `Here is the apply link: ${applyUrl}`;
+    let replyId: string;
+    let dmId: string;
+    if (account.dryRun) {
+      replyId = `dryrun-${ulid()}`;
+      dmId = `dryrun-${ulid()}`;
+    } else {
+      replyId = (await this.instagram.replyToComment(account, comment.igCommentId, replyText))
+        .replyId;
+      dmId = (await this.instagram.sendPrivateReply(account, comment.igCommentId, dmText))
+        .messageId;
+    }
+
+    await this.comments.transition({
+      postId: comment.postId,
+      igCommentId: comment.igCommentId,
+      accountId: comment.accountId,
+      expectedStatus: "AUTO_REPLIED",
+      expectedVersion: claimed.version,
+      nextStatus: "AUTO_REPLIED",
+      patch: { replyText, replyId, dmText, dmId },
+    });
+    await this.replyCaps.increment(account.id, comment.postId);
+    await this.appendAudit(account, comment, "comment.link-request", LINK_REQUEST_RULE, null);
+    return { outcome: "replied" };
   }
 
   /** Claim first, side-effect second — a duplicated job replies at most once. */

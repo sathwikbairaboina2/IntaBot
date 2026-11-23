@@ -6,6 +6,7 @@ import type {
   DateRange,
   InsightPoint,
   InstagramPort,
+  PrivateReplyResult,
   PublishResult,
   ReplyResult,
 } from "./instagram.port";
@@ -33,11 +34,20 @@ export interface ReplyRecord {
   replyId: string;
 }
 
+export interface DmRecord {
+  accountId: string;
+  commentId: string;
+  text: string;
+  messageId: string;
+}
+
 @Injectable()
 export class FakeInstagramAdapter implements InstagramPort {
   private containers = new Map<string, FakeContainer>();
   private published: PublishedRecord[] = [];
   private replies: ReplyRecord[] = [];
+  private dms: DmRecord[] = [];
+  private dmCounter = 0;
   private counter = 0;
   private processingPolls = 1;
   private nextContainerFails = false;
@@ -60,6 +70,10 @@ export class FakeInstagramAdapter implements InstagramPort {
     return [...this.replies];
   }
 
+  getDms(): DmRecord[] {
+    return [...this.dms];
+  }
+
   /** Total containers ever created. Used to prove publishing is idempotent. */
   getContainerCount(): number {
     return this.containers.size;
@@ -69,6 +83,8 @@ export class FakeInstagramAdapter implements InstagramPort {
     this.containers.clear();
     this.published = [];
     this.replies = [];
+    this.dms = [];
+    this.dmCounter = 0;
     this.counter = 0;
     this.processingPolls = 1;
     this.nextContainerFails = false;
@@ -122,6 +138,16 @@ export class FakeInstagramAdapter implements InstagramPort {
     const replyId = `fake-reply-${++this.counter}`;
     this.replies.push({ accountId: account.id, commentId, text, replyId });
     return { replyId };
+  }
+
+  async sendPrivateReply(
+    account: Account,
+    commentId: string,
+    text: string,
+  ): Promise<PrivateReplyResult> {
+    const messageId = `fake-dm-${++this.dmCounter}`;
+    this.dms.push({ accountId: account.id, commentId, text, messageId });
+    return { messageId };
   }
 
   async getAccountInsights(
