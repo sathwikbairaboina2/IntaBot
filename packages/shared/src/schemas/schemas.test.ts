@@ -242,3 +242,55 @@ describe("phase 3 schema additions", () => {
     expect(() => AccountSchema.parse({ ...base, replyCapPerAccountPerHour: 0 })).toThrow();
   });
 });
+
+describe("handoff schema additions", () => {
+  const baseAccount = {
+    id: "acct-1",
+    name: "Studio Nord",
+    igUserId: "1784140",
+    username: "studionord",
+    status: "ACTIVE",
+    accessTokenEncrypted: "v1:a:b:c",
+    tokenExpiresAt: "2026-10-13T00:00:00.000Z",
+    createdAt: "2026-08-14T00:00:00.000Z",
+    updatedAt: "2026-08-14T00:00:00.000Z",
+  };
+  const basePost = {
+    id: "post-1",
+    accountId: "acct-1",
+    status: "PENDING_APPROVAL",
+    format: "IMAGE",
+    version: 1,
+    mediaAssetIds: ["asset-1"],
+    caption: "Hiring.",
+    hashtags: [],
+    scheduledAt: "2026-08-15T09:00:00.000Z",
+    createdAt: "2026-08-14T00:00:00.000Z",
+    updatedAt: "2026-08-14T00:00:00.000Z",
+  };
+
+  it("defaults linkKeyword to LINK", () => {
+    expect(AccountSchema.parse(baseAccount).linkKeyword).toBe("LINK");
+  });
+
+  it("keeps an explicit linkKeyword and rejects an empty one", () => {
+    expect(AccountSchema.parse({ ...baseAccount, linkKeyword: "APPLY" }).linkKeyword).toBe("APPLY");
+    expect(() => AccountSchema.parse({ ...baseAccount, linkKeyword: "" })).toThrow();
+  });
+
+  it("leaves applyUrl and source undefined on an older post", () => {
+    const parsed = PostSchema.parse(basePost);
+    expect(parsed.applyUrl).toBeUndefined();
+    expect(parsed.source).toBeUndefined();
+  });
+
+  it("accepts applyUrl and source and rejects a non-url applyUrl", () => {
+    const parsed = PostSchema.parse({
+      ...basePost,
+      applyUrl: "https://aiiolar.com/jobs?job=abc",
+      source: { app: "iolar-studio", ref: "card-1" },
+    });
+    expect(parsed.source).toEqual({ app: "iolar-studio", ref: "card-1" });
+    expect(() => PostSchema.parse({ ...basePost, applyUrl: "not a url" })).toThrow();
+  });
+});

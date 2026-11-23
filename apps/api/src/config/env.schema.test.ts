@@ -52,4 +52,29 @@ describe("parseEnv", () => {
     expect(cfg.meta.appSecret).toBeUndefined();
     expect(cfg.dynamo.endpoint).toBeUndefined();
   });
+
+  it("defaults the handoff and runtime knobs", () => {
+    const cfg = parseEnv(valid);
+    expect(cfg.handoff.key).toBeUndefined();
+    expect(cfg.handoff.accountId).toBeUndefined();
+    expect(cfg.queuePrefix).toBe("intabot");
+    expect(cfg.publishScanIntervalMs).toBe(60000);
+  });
+
+  it("reads the handoff and runtime knobs and treats blanks as absent", () => {
+    const cfg = parseEnv({
+      ...valid,
+      HANDOFF_KEY: "k",
+      HANDOFF_ACCOUNT_ID: "acct-1",
+      QUEUE_PREFIX: "intabot-e2e",
+      PUBLISH_SCAN_INTERVAL_MS: "2000",
+    });
+    expect(cfg.handoff).toEqual({ key: "k", accountId: "acct-1" });
+    expect(cfg.queuePrefix).toBe("intabot-e2e");
+    expect(cfg.publishScanIntervalMs).toBe(2000);
+
+    const blank = parseEnv({ ...valid, HANDOFF_KEY: "", HANDOFF_ACCOUNT_ID: "", QUEUE_PREFIX: "" });
+    expect(blank.handoff.key).toBeUndefined();
+    expect(blank.queuePrefix).toBe("intabot");
+  });
 });

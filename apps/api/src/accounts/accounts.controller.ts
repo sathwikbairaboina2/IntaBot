@@ -32,6 +32,7 @@ const PatchBody = z.object({
   replyCapPerPostPerHour: z.number().int().positive().optional(),
   replyCapPerAccountPerHour: z.number().int().positive().optional(),
   blocklist: z.array(z.string().min(1)).optional(),
+  linkKeyword: z.string().min(1).optional(),
 });
 
 export type AccountView = Omit<Account, "accessTokenEncrypted">;

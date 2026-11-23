@@ -40,6 +40,16 @@ const EnvSchema = z.object({
   LLM_PROVIDER: optionalString(z.enum(["fake", "anthropic", "ollama"])),
   OLLAMA_BASE_URL: z.string().url().default("http://localhost:11434"),
   OLLAMA_MODEL: z.string().min(1).default("qwen3.8:27b"),
+  /** Shared secret for Studio's job-card handoff. Unset disables the endpoint. */
+  HANDOFF_KEY: optionalString(z.string().min(1)),
+  /** Account that handoff posts land on when the request names none. */
+  HANDOFF_ACCOUNT_ID: optionalString(z.string().min(1)),
+  /** Redis key prefix for queues; a second local instance needs its own. */
+  QUEUE_PREFIX: z.preprocess((v) => (v === "" ? undefined : v), z.string().min(1).default("intabot")),
+  PUBLISH_SCAN_INTERVAL_MS: z.preprocess(
+    (v) => (v === "" ? undefined : v),
+    z.coerce.number().int().positive().default(60_000),
+  ),
 });
 
 export interface AppConfig {
@@ -58,6 +68,10 @@ export interface AppConfig {
   /** Resolved implementation for the copy writer, classifier and reply writer. */
   llmProvider: "fake" | "anthropic" | "ollama";
   ollama: { baseUrl: string; model: string };
+  handoff: { key?: string; accountId?: string };
+  queuePrefix: string;
+  /** How often the publish scan looks for approved posts that are due. */
+  publishScanIntervalMs: number;
 }
 
 export function parseEnv(raw: NodeJS.ProcessEnv | Record<string, string | undefined>): AppConfig {
@@ -96,5 +110,8 @@ export function parseEnv(raw: NodeJS.ProcessEnv | Record<string, string | undefi
     // checkout that never heard of LLM_PROVIDER behaves exactly as before.
     llmProvider: e.LLM_PROVIDER ?? (e.ANTHROPIC_API_KEY ? "anthropic" : "fake"),
     ollama: { baseUrl: e.OLLAMA_BASE_URL, model: e.OLLAMA_MODEL },
+    handoff: { key: e.HANDOFF_KEY, accountId: e.HANDOFF_ACCOUNT_ID },
+    queuePrefix: e.QUEUE_PREFIX,
+    publishScanIntervalMs: e.PUBLISH_SCAN_INTERVAL_MS,
   };
 }

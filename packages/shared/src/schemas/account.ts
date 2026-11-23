@@ -28,6 +28,8 @@ export const AccountSchema = z.object({
   replyCapPerAccountPerHour: z.number().int().positive().default(20),
   /** Comments containing any of these terms escalate, never auto-reply. */
   blocklist: z.array(z.string().min(1)).default([]),
+  /** Comment word that requests the apply link by DM. */
+  linkKeyword: z.string().min(1).default("LINK"),
   createdAt: isoDateTime,
   updatedAt: isoDateTime,
 });

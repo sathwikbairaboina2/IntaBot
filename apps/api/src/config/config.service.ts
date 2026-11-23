@@ -17,4 +17,7 @@ export class AppConfigService {
   get instagramMode() { return this.config.instagramMode; }
   get llmProvider() { return this.config.llmProvider; }
   get ollama() { return this.config.ollama; }
+  get handoff() { return this.config.handoff; }
+  get queuePrefix() { return this.config.queuePrefix; }
+  get publishScanIntervalMs() { return this.config.publishScanIntervalMs; }
 }

@@ -105,4 +105,19 @@ describe("accounts", () => {
       .expect(200);
     expect(patched.body.dryRun).toBe(false);
   });
+
+  it("patches linkKeyword and shows it in the view", async () => {
+    const created = await request(app.getHttpServer())
+      .post("/accounts")
+      .set("Cookie", cookie)
+      .send(body)
+      .expect(201);
+    expect(created.body.linkKeyword).toBe("LINK");
+    const patched = await request(app.getHttpServer())
+      .patch(`/accounts/${created.body.id}`)
+      .set("Cookie", cookie)
+      .send({ linkKeyword: "APPLY" })
+      .expect(200);
+    expect(patched.body.linkKeyword).toBe("APPLY");
+  });
 });

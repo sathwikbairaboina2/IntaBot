@@ -24,6 +24,17 @@ describe("PostRepository", () => {
     expect(post.version).toBe(1);
   });
 
+  it("stores applyUrl and source and reads them back", async () => {
+    const post = await repo.create({
+      ...input,
+      applyUrl: "https://aiiolar.com/jobs?job=abc",
+      source: { app: "iolar-studio", ref: "card-1" },
+    });
+    const found = await repo.get(post.accountId, post.id);
+    expect(found?.applyUrl).toBe("https://aiiolar.com/jobs?job=abc");
+    expect(found?.source).toEqual({ app: "iolar-studio", ref: "card-1" });
+  });
+
   it("transitions status and increments version", async () => {
     const post = await repo.create(input);
     const moved = await repo.transition({

@@ -7,6 +7,7 @@ import { AppConfigModule } from "./config/config.module";
 import { ContentModule } from "./content/content.module";
 import { CryptoModule } from "./crypto/crypto.module";
 import { DynamoModule } from "./dynamo/dynamo.module";
+import { HandoffModule } from "./handoff/handoff.module";
 import { HealthController } from "./health/health.controller";
 import { InstagramModule } from "./instagram/instagram.module";
 import { JobsModule } from "./jobs/jobs.module";
@@ -31,6 +32,7 @@ import { WebhooksModule } from "./webhooks/webhooks.module";
     ApprovalsModule,
     ModerationModule,
     WebhooksModule,
+    HandoffModule,
   ],
   controllers: [HealthController],
 })

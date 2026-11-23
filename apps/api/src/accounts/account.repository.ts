@@ -46,6 +46,7 @@ export type UpdateAccountPatch = Partial<
     | "replyCapPerPostPerHour"
     | "replyCapPerAccountPerHour"
     | "blocklist"
+    | "linkKeyword"
   >
 >;
 

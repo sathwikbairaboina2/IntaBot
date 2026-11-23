@@ -43,6 +43,8 @@ export const keys = {
     PK: `ACCT#${accountId}#LOG`,
     SK: sortKey,
   }),
+  /** Idempotency claim for a Studio job card: cardId to postId. */
+  handoff: (cardId: string) => ({ PK: `HANDOFF#${cardId}`, SK: "#" }),
   webhookSeen: (eventId: string) => ({ PK: `WH#${eventId}`, SK: "#" }),
 
   user: (email: string) => ({ PK: `USER#${email.toLowerCase()}`, SK: "#META" }),

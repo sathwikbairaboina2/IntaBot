@@ -35,6 +35,10 @@ export const PostSchema = z.object({
   needsAttention: z.boolean().optional(),
   /** Published in dry-run mode; never reached Instagram. */
   dryRun: z.boolean().optional(),
+  /** Where the apply link in the caption points; keyword comments get it by DM. */
+  applyUrl: z.string().url().optional(),
+  /** The app and record that produced this post, e.g. a Studio job card. */
+  source: z.object({ app: z.string().min(1), ref: z.string().min(1) }).optional(),
   createdAt: isoDateTime,
   updatedAt: isoDateTime,
 });

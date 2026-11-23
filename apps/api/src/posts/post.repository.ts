@@ -26,6 +26,8 @@ export interface CreatePostInput {
   caption: string;
   hashtags: string[];
   scheduledAt: string;
+  applyUrl?: string;
+  source?: Post["source"];
 }
 
 export type PostPatch = Partial<
@@ -76,6 +78,8 @@ export class PostRepository {
       caption: input.caption,
       hashtags: input.hashtags,
       scheduledAt: input.scheduledAt,
+      ...(input.applyUrl !== undefined ? { applyUrl: input.applyUrl } : {}),
+      ...(input.source !== undefined ? { source: input.source } : {}),
       createdAt: now,
       updatedAt: now,
     });

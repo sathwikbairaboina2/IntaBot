@@ -15,7 +15,10 @@ export type QueueName = (typeof QUEUE)[keyof typeof QUEUE];
  */
 export function queuePrefix(): string {
   const worker = process.env.VITEST_WORKER_ID;
-  return worker ? `intabot-test-w${worker}` : "intabot";
+  if (worker) return `intabot-test-w${worker}`;
+  // A second local instance sets QUEUE_PREFIX so it never shares jobs with the
+  // first. Read here (not via AppConfig) because the reply caps use it too.
+  return process.env.QUEUE_PREFIX || "intabot";
 }
 
 export const REDIS_CONNECTION = Symbol("REDIS_CONNECTION");

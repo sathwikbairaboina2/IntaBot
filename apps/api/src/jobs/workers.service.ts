@@ -1,5 +1,6 @@
 import { Inject, Injectable, Logger, OnApplicationShutdown, OnModuleInit } from "@nestjs/common";
 import { Queue, Worker } from "bullmq";
+import { AppConfigService } from "../config/config.service";
 import IORedis from "ioredis";
 import { DraftProcessor, type DraftJobData } from "./draft.processor";
 import { ModerationProcessor, type ModerationJobData } from "./moderation.processor";
@@ -7,8 +8,6 @@ import { PollContainerProcessor, type PollJobData } from "./poll-container.proce
 import { PublishScanProcessor } from "./publish-scan.processor";
 import { PublishProcessor, type PublishJobData } from "./publish.processor";
 import { PUBLISH_SCAN_QUEUE, QUEUE, REDIS_CONNECTION, queuePrefix } from "./queue.constants";
-
-const SCAN_INTERVAL_MS = 60_000;
 
 @Injectable()
 export class WorkersService implements OnModuleInit, OnApplicationShutdown {
@@ -23,6 +22,7 @@ export class WorkersService implements OnModuleInit, OnApplicationShutdown {
     @Inject(PublishScanProcessor) private readonly scan: PublishScanProcessor,
     @Inject(ModerationProcessor) private readonly moderation: ModerationProcessor,
     @Inject(PUBLISH_SCAN_QUEUE) private readonly scanQueue: Queue,
+    @Inject(AppConfigService) private readonly config: AppConfigService,
   ) {}
 
   async onModuleInit(): Promise<void> {
@@ -55,7 +55,7 @@ export class WorkersService implements OnModuleInit, OnApplicationShutdown {
     await this.scanQueue.add(
       "scan",
       {},
-      { repeat: { every: SCAN_INTERVAL_MS }, jobId: "publish-scan" },
+      { repeat: { every: this.config.publishScanIntervalMs }, jobId: "publish-scan" },
     );
 
     this.logger.log(`started ${this.workers.length} workers`);

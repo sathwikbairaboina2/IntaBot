@@ -57,6 +57,13 @@ describe("AccountRepository", () => {
     );
   });
 
+  it("defaults linkKeyword to LINK and updates it", async () => {
+    const created = await repo.create(input);
+    expect(created.linkKeyword).toBe("LINK");
+    const updated = await repo.update(created.id, { linkKeyword: "APPLY" });
+    expect(updated.linkKeyword).toBe("APPLY");
+  });
+
   it("keeps the GSI1SK in sync when the name changes", async () => {
     const created = await repo.create(input);
     await repo.update(created.id, { name: "Aardvark Co" });
