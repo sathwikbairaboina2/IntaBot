@@ -10,7 +10,7 @@ import {
   TeamOutlined,
 } from "@ant-design/icons";
 import { Button, Table, type TableColumnsType } from "antd";
-import type { ReactNode } from "react";
+import type { HTMLAttributes, ReactNode } from "react";
 import { AccountRing, EmptyState, ModeTag, StatusDot, ToneTag } from "@/components/ui";
 import type { AccountStats, Expiry, Tone } from "@/lib/view";
 
@@ -35,6 +35,9 @@ function Stat({ icon, label, value, sub, warn }: { icon: ReactNode; label: strin
   );
 }
 
+// The phone layout shows each row as a card and names every cell from this attribute.
+const label = (name: string) => () => ({ "data-label": name }) as HTMLAttributes<HTMLElement>;
+
 const columns: TableColumnsType<AccountRow> = [
   {
     title: "Account",
@@ -49,16 +52,18 @@ const columns: TableColumnsType<AccountRow> = [
       </div>
     ),
   },
-  { title: "Status", key: "status", render: (_, row) => <StatusDot tone={row.status.tone}>{row.status.label}</StatusDot> },
-  { title: "Mode", key: "mode", render: (_, row) => <ModeTag dryRun={row.dryRun} /> },
+  { title: "Status", key: "status", onCell: label("Status"), render: (_, row) => <StatusDot tone={row.status.tone}>{row.status.label}</StatusDot> },
+  { title: "Mode", key: "mode", onCell: label("Mode"), render: (_, row) => <ModeTag dryRun={row.dryRun} /> },
   {
     title: "Moderation",
     key: "moderation",
+    onCell: label("Moderation"),
     render: (_, row) => (row.moderationPaused ? <ToneTag tone="neutral">Paused</ToneTag> : <span className="muted">On</span>),
   },
   {
     title: "Token expires",
     key: "expiry",
+    onCell: label("Token expires"),
     render: (_, row) => (
       <div className={`expiry-${row.expiry.level}`}>
         <div className="num">{row.expiresOn}</div>

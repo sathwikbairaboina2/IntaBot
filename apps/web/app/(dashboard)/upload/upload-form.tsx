@@ -71,7 +71,8 @@ export function UploadForm({ accounts }: { accounts: UploadAccount[] }) {
             value: a.id,
             label: (
               <span className="select-acct">
-                <AccountRing name={a.name} size="sm" />@{a.username}
+                <AccountRing name={a.name} size="sm" />
+                <span className="select-user">@{a.username}</span>
                 <ModeTag dryRun={a.dryRun} />
               </span>
             ),
