@@ -27,6 +27,11 @@ export interface PrivateReplyResult {
   messageId: string;
 }
 
+export interface RefreshedToken {
+  accessToken: string;
+  expiresInSeconds: number;
+}
+
 export interface DateRange {
   from: string;
   to: string;
@@ -48,6 +53,11 @@ export interface InstagramPort {
     commentId: string,
     text: string,
   ): Promise<PrivateReplyResult>;
+  /** Hides (or unhides) a comment on one of the account's posts. */
+  hideComment(account: Account, commentId: string, hidden: boolean): Promise<void>;
+  deleteComment(account: Account, commentId: string): Promise<void>;
+  /** Exchanges a long-lived Instagram-Login token for a fresh one. Live mode only. */
+  refreshAccessToken(account: Account): Promise<RefreshedToken>;
   getAccountInsights(
     account: Account,
     metrics: string[],

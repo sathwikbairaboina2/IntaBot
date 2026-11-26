@@ -117,4 +117,41 @@ describe("FakeInstagramAdapter", () => {
     expect(points.map((p) => p.date)).toEqual(["2026-08-01", "2026-08-02", "2026-08-03"]);
     expect(points[0]?.metrics.reach).toBeTypeOf("number");
   });
+
+  it("records hides and deletes", async () => {
+    await adapter.hideComment(account, "c-1", true);
+    await adapter.hideComment(account, "c-1", false);
+    await adapter.deleteComment(account, "c-2");
+    expect(adapter.getHides()).toEqual([
+      { accountId: "acct-1", commentId: "c-1", hidden: true },
+      { accountId: "acct-1", commentId: "c-1", hidden: false },
+    ]);
+    expect(adapter.getDeletes()).toEqual([{ accountId: "acct-1", commentId: "c-2" }]);
+    adapter.reset();
+    expect(adapter.getHides()).toEqual([]);
+    expect(adapter.getDeletes()).toEqual([]);
+  });
+
+  it("keeps the input of every container, children included", async () => {
+    const child = await adapter.createContainer(account, {
+      format: "IMAGE",
+      mediaUrl: "https://example.test/1.png",
+      caption: "",
+      isCarouselItem: true,
+    });
+    const parent = await adapter.createContainer(account, {
+      format: "CAROUSEL",
+      mediaUrl: "",
+      caption: "hi",
+      childContainerIds: [child.containerId],
+    });
+    const inputs = adapter.getContainerInputs();
+    expect(inputs).toHaveLength(2);
+    expect(inputs[0]).toMatchObject({ containerId: child.containerId, isCarouselItem: true });
+    expect(inputs[1]).toMatchObject({
+      containerId: parent.containerId,
+      format: "CAROUSEL",
+      childContainerIds: [child.containerId],
+    });
+  });
 });

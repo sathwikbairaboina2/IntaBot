@@ -130,3 +130,52 @@ describe("IgMediaRefRepository", () => {
     expect(await refs.get("ig-777")).toEqual({ accountId: "acct-1", postId: "post-1" });
   });
 });
+
+describe("CommentRepository listing for the panel", () => {
+  beforeEach(async () => {
+    await resetTables();
+  });
+
+  async function seed() {
+    // createdAt comes from the clock, so a short pause keeps the order stable.
+    for (const [id, postId] of [
+      ["c1", "post-1"],
+      ["c2", "post-1"],
+      ["c3", "post-2"],
+    ] as const) {
+      await repo.create({ ...input, igCommentId: id, postId });
+      await new Promise((resolve) => setTimeout(resolve, 5));
+    }
+  }
+
+  it("lists the comments of one post, oldest first", async () => {
+    await seed();
+    const found = await repo.listByPost("post-1");
+    expect(found.map((c) => c.igCommentId)).toEqual(["c1", "c2"]);
+  });
+
+  it("pages an account's comments newest first across posts and statuses", async () => {
+    await seed();
+    const c2 = await repo.get("post-1", "c2");
+    await repo.transition({
+      postId: "post-1",
+      igCommentId: "c2",
+      accountId: "acct-1",
+      expectedStatus: "RECEIVED",
+      expectedVersion: c2!.version,
+      nextStatus: "ESCALATED",
+    });
+
+    const first = await repo.listRecent("acct-1", { limit: 2 });
+    expect(first.items.map((c) => c.igCommentId)).toEqual(["c3", "c2"]);
+    expect(first.nextCursor).not.toBeNull();
+    const second = await repo.listRecent("acct-1", { limit: 2, before: first.nextCursor! });
+    expect(second.items.map((c) => c.igCommentId)).toEqual(["c1"]);
+    expect(second.nextCursor).toBeNull();
+
+    const escalated = await repo.listRecent("acct-1", { limit: 10, status: "ESCALATED" });
+    expect(escalated.items.map((c) => c.igCommentId)).toEqual(["c2"]);
+    const since = await repo.listRecent("acct-1", { limit: 10, since: c2!.createdAt });
+    expect(since.items.map((c) => c.igCommentId)).toEqual(["c3", "c2"]);
+  });
+});

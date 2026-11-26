@@ -12,7 +12,7 @@ import {
   UseGuards,
 } from "@nestjs/common";
 import { z } from "zod";
-import { AuthGuard } from "../auth/auth.guard";
+import { PanelAuthGuard } from "../auth/panel-auth.guard";
 import { PostRepository, PostTransitionConflictError } from "../posts/post.repository";
 
 const DecisionBody = z.object({
@@ -24,7 +24,7 @@ const DecisionBody = z.object({
 });
 
 @Controller("approvals")
-@UseGuards(AuthGuard)
+@UseGuards(PanelAuthGuard)
 export class ApprovalsController {
   constructor(@Inject(PostRepository) private readonly posts: PostRepository) {}
 

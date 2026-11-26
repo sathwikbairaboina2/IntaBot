@@ -35,6 +35,47 @@ describe("PostRepository", () => {
     expect(found?.source).toEqual({ app: "iolar-studio", ref: "card-1" });
   });
 
+  it("stores keyword and child containers and reads them back", async () => {
+    const post = await repo.create({ ...input, format: "CAROUSEL", keyword: "ZOHO" });
+    expect((await repo.get(post.accountId, post.id))?.keyword).toBe("ZOHO");
+    const moved = await repo.transition({
+      accountId: post.accountId,
+      postId: post.id,
+      expectedStatus: "DRAFT",
+      expectedVersion: 1,
+      nextStatus: "PUBLISHING",
+      patch: { childContainerIds: ["c1", "c2"] },
+    });
+    expect(moved.childContainerIds).toEqual(["c1", "c2"]);
+  });
+
+  it("clears named fields during a transition", async () => {
+    const post = await repo.create(input);
+    const failed = await repo.transition({
+      accountId: post.accountId,
+      postId: post.id,
+      expectedStatus: "DRAFT",
+      expectedVersion: 1,
+      nextStatus: "FAILED",
+      patch: { containerId: "c-1", childContainerIds: ["a"], failureReason: "boom" },
+    });
+    const retried = await repo.transition({
+      accountId: post.accountId,
+      postId: post.id,
+      expectedStatus: "FAILED",
+      expectedVersion: failed.version,
+      nextStatus: "APPROVED",
+      patch: { scheduledAt: "2026-08-16T09:00:00.000Z" },
+      clear: ["containerId", "childContainerIds", "failureReason"],
+    });
+    expect(retried).toMatchObject({ status: "APPROVED", scheduledAt: "2026-08-16T09:00:00.000Z" });
+    expect(retried.containerId).toBeUndefined();
+    expect(retried.childContainerIds).toBeUndefined();
+    expect(retried.failureReason).toBeUndefined();
+    const due = await repo.listDue(post.accountId, "2026-08-17T00:00:00.000Z");
+    expect(due.map((p) => p.id)).toEqual([post.id]);
+  });
+
   it("transitions status and increments version", async () => {
     const post = await repo.create(input);
     const moved = await repo.transition({

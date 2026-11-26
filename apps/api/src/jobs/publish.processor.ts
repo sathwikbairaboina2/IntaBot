@@ -1,12 +1,15 @@
 import { Inject, Injectable, Logger } from "@nestjs/common";
 import { Queue } from "bullmq";
+import type { Account, Post } from "@intabot/shared";
 import { ulid } from "ulid";
 import { AccountRepository } from "../accounts/account.repository";
+import { GraphError, describeGraphError } from "../instagram/graph-responses";
 import { INSTAGRAM_PORT, type InstagramPort } from "../instagram/instagram.port";
 import { MediaAssetRepository } from "../media/media-asset.repository";
 import { MEDIA_STORAGE, type MediaStoragePort } from "../media/media-storage.port";
 import { IgMediaRefRepository } from "../moderation/ig-media-ref.repository";
 import { PostRepository, PostTransitionConflictError } from "../posts/post.repository";
+import { publishCaption } from "./publish-caption";
 import { POLL_QUEUE } from "./queue.constants";
 
 export interface PublishJobData {
@@ -80,35 +83,95 @@ export class PublishProcessor {
       return { containerId: null };
     }
 
-    const assetId = post.mediaAssetIds[0];
-    if (!assetId) throw new Error(`post ${postId} has no media asset`);
-    const asset = await this.assets.get(accountId, assetId);
-    if (!asset) throw new Error(`media asset not found: ${assetId}`);
+    try {
+      if (post.format === "CAROUSEL") {
+        return await this.startCarousel(account, post, claimed.version);
+      }
 
-    const mediaUrl = await this.storage.presignedUrl(asset.storageKey, MEDIA_URL_TTL_SECONDS);
-    const { containerId } = await this.instagram.createContainer(account, {
-      format: post.format,
-      mediaUrl,
-      caption: [post.caption, post.hashtags.join(" ")].filter(Boolean).join("\n\n"),
-    });
+      const assetId = post.mediaAssetIds[0];
+      if (!assetId) throw new Error(`post ${postId} has no media asset`);
+      const mediaUrl = await this.mediaUrl(accountId, assetId);
+      const { containerId } = await this.instagram.createContainer(account, {
+        format: post.format,
+        mediaUrl,
+        caption: publishCaption(post),
+      });
 
-    // PUBLISHING -> PUBLISHING is intentional: it stores containerId while
-    // bumping the version, so a stale worker cannot later act on this post.
+      // PUBLISHING -> PUBLISHING is intentional: it stores containerId while
+      // bumping the version, so a stale worker cannot later act on this post.
+      await this.posts.transition({
+        accountId,
+        postId,
+        expectedStatus: "PUBLISHING",
+        expectedVersion: claimed.version,
+        nextStatus: "PUBLISHING",
+        patch: { containerId },
+      });
+
+      await this.pollQueue.add(
+        "poll",
+        { accountId, postId, attempt: 1 },
+        { jobId: `poll:${postId}:${containerId}`, delay: 15_000 },
+      );
+
+      return { containerId };
+    } catch (err) {
+      // Instagram refused a call: record why and stop; any other error is not
+      // ours to hide and goes back to the queue.
+      if (!(err instanceof GraphError)) throw err;
+      await this.posts.transition({
+        accountId,
+        postId,
+        expectedStatus: "PUBLISHING",
+        expectedVersion: claimed.version,
+        nextStatus: "FAILED",
+        patch: { failureReason: describeGraphError(err) },
+      });
+      this.logger.warn(`post ${postId} failed: ${describeGraphError(err)}`);
+      return { containerId: null };
+    }
+  }
+
+  /**
+   * A carousel is built in stages: one child container per image now, then the
+   * poll job creates the carousel container once every child has finished.
+   */
+  private async startCarousel(
+    account: Account,
+    post: Post,
+    claimedVersion: number,
+  ): Promise<{ containerId: string | null }> {
+    const childContainerIds: string[] = [];
+    for (const assetId of post.mediaAssetIds) {
+      const { containerId } = await this.instagram.createContainer(account, {
+        format: "IMAGE",
+        mediaUrl: await this.mediaUrl(account.id, assetId),
+        caption: "",
+        isCarouselItem: true,
+      });
+      childContainerIds.push(containerId);
+    }
+
     await this.posts.transition({
-      accountId,
-      postId,
+      accountId: account.id,
+      postId: post.id,
       expectedStatus: "PUBLISHING",
-      expectedVersion: claimed.version,
+      expectedVersion: claimedVersion,
       nextStatus: "PUBLISHING",
-      patch: { containerId },
+      patch: { childContainerIds },
     });
 
     await this.pollQueue.add(
       "poll",
-      { accountId, postId, attempt: 1 },
-      { jobId: `poll:${postId}:${containerId}`, delay: 15_000 },
+      { accountId: account.id, postId: post.id, attempt: 1 },
+      { jobId: `poll:${post.id}:children`, delay: 15_000 },
     );
+    return { containerId: null };
+  }
 
-    return { containerId };
+  private async mediaUrl(accountId: string, assetId: string): Promise<string> {
+    const asset = await this.assets.get(accountId, assetId);
+    if (!asset) throw new Error(`media asset not found: ${assetId}`);
+    return this.storage.presignedUrl(asset.storageKey, MEDIA_URL_TTL_SECONDS);
   }
 }

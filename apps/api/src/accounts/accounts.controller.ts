@@ -10,11 +10,13 @@ import {
   Post,
   UseGuards,
 } from "@nestjs/common";
-import { Account, AccountStatus } from "@intabot/shared";
+import { Account, AccountStatus, IanaTimezone, PostingWindows } from "@intabot/shared";
 import { z } from "zod";
 import { AuthGuard } from "../auth/auth.guard";
+import { AppConfigService } from "../config/config.service";
 import { TokenCryptoService } from "../crypto/token-crypto.service";
 import { AccountNotFoundError, AccountRepository } from "./account.repository";
+import { tokenDaysLeft } from "./token-expiry";
 
 const CreateBody = z.object({
   name: z.string().min(1),
@@ -33,13 +35,20 @@ const PatchBody = z.object({
   replyCapPerAccountPerHour: z.number().int().positive().optional(),
   blocklist: z.array(z.string().min(1)).optional(),
   linkKeyword: z.string().min(1).optional(),
+  listKeyword: z.string().min(1).optional(),
+  listText: z.string().max(1000).nullable().optional(),
+  timezone: IanaTimezone.optional(),
+  postingWindows: PostingWindows.optional(),
 });
 
-export type AccountView = Omit<Account, "accessTokenEncrypted">;
+export type AccountView = Omit<Account, "accessTokenEncrypted"> & {
+  /** Whole days until the token expires; negative once it has. */
+  tokenDaysLeft: number;
+};
 
 function toView(account: Account): AccountView {
   const { accessTokenEncrypted: _omitted, ...view } = account;
-  return view;
+  return { ...view, tokenDaysLeft: tokenDaysLeft(account.tokenExpiresAt) };
 }
 
 @Controller("accounts")
@@ -48,6 +57,7 @@ export class AccountsController {
   constructor(
     @Inject(AccountRepository) private readonly accounts: AccountRepository,
     @Inject(TokenCryptoService) private readonly crypto: TokenCryptoService,
+    @Inject(AppConfigService) private readonly config: AppConfigService,
   ) {}
 
   @Get()
@@ -73,6 +83,7 @@ export class AccountsController {
       username: parsed.data.username,
       accessTokenEncrypted: this.crypto.encrypt(parsed.data.accessToken),
       tokenExpiresAt: parsed.data.tokenExpiresAt,
+      timezone: this.config.defaultTimezone,
     });
     return toView(account);
   }

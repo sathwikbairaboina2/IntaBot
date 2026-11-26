@@ -77,4 +77,24 @@ describe("parseEnv", () => {
     expect(blank.handoff.key).toBeUndefined();
     expect(blank.queuePrefix).toBe("intabot");
   });
+
+  it("defaults new accounts to Asia/Kolkata and leaves the graph version unset", () => {
+    const cfg = parseEnv(valid);
+    expect(cfg.defaultTimezone).toBe("Asia/Kolkata");
+    expect(cfg.instagramGraphVersion).toBeUndefined();
+  });
+
+  it("reads BOT_DEFAULT_TZ and INSTAGRAM_GRAPH_VERSION, blank meaning absent", () => {
+    const cfg = parseEnv({ ...valid, BOT_DEFAULT_TZ: "Europe/Berlin", INSTAGRAM_GRAPH_VERSION: "v21.0" });
+    expect(cfg.defaultTimezone).toBe("Europe/Berlin");
+    expect(cfg.instagramGraphVersion).toBe("v21.0");
+    const blank = parseEnv({ ...valid, BOT_DEFAULT_TZ: "", INSTAGRAM_GRAPH_VERSION: "" });
+    expect(blank.defaultTimezone).toBe("Asia/Kolkata");
+    expect(blank.instagramGraphVersion).toBeUndefined();
+  });
+
+  it("rejects an unknown time zone or a malformed graph version", () => {
+    expect(() => parseEnv({ ...valid, BOT_DEFAULT_TZ: "Mars/Olympus" })).toThrow(/BOT_DEFAULT_TZ/);
+    expect(() => parseEnv({ ...valid, INSTAGRAM_GRAPH_VERSION: "21" })).toThrow(/INSTAGRAM_GRAPH_VERSION/);
+  });
 });

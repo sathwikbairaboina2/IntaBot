@@ -32,6 +32,8 @@ export interface CreateAccountInput {
   username: string;
   accessTokenEncrypted: string;
   tokenExpiresAt: string;
+  /** IANA zone; omitted keeps the schema default. */
+  timezone?: string;
 }
 
 export type UpdateAccountPatch = Partial<
@@ -47,6 +49,12 @@ export type UpdateAccountPatch = Partial<
     | "replyCapPerAccountPerHour"
     | "blocklist"
     | "linkKeyword"
+    | "listKeyword"
+    | "listText"
+    | "timezone"
+    | "postingWindows"
+    | "tokenRefreshError"
+    | "tokenRefreshedAt"
   >
 >;
 
@@ -73,6 +81,7 @@ export class AccountRepository {
       tokenExpiresAt: input.tokenExpiresAt,
       dryRun: true,
       moderationPaused: false,
+      ...(input.timezone ? { timezone: input.timezone } : {}),
       createdAt: now,
       updatedAt: now,
     });

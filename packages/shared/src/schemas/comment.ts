@@ -39,6 +39,16 @@ export const CommentSchema = z.object({
   /** Private message sent for a link request (policyRule "link-request"). */
   dmText: z.string().optional(),
   dmId: z.string().optional(),
+  /** Whether the private reply went out: sent, failed (the public reply may still have), or skipped. */
+  dmState: z.enum(["sent", "failed", "skipped"]).optional(),
+  /** Why the DM failed or was skipped. */
+  dmError: z.string().optional(),
+  /** Why the public reply failed, in the form "graph <code>: <message>". */
+  failureReason: z.string().optional(),
+  /** Hidden from public view by an operator action. */
+  hidden: z.boolean().optional(),
+  /** Deleted on Instagram by an operator action; the record stays for the audit trail. */
+  deleted: z.boolean().optional(),
   createdAt: isoDateTime,
   updatedAt: isoDateTime,
 });

@@ -15,6 +15,8 @@ export class AppConfigService {
   get meta() { return this.config.meta; }
   get anthropicApiKey() { return this.config.anthropicApiKey; }
   get instagramMode() { return this.config.instagramMode; }
+  get instagramGraphVersion() { return this.config.instagramGraphVersion; }
+  get defaultTimezone() { return this.config.defaultTimezone; }
   get llmProvider() { return this.config.llmProvider; }
   get ollama() { return this.config.ollama; }
   get handoff() { return this.config.handoff; }

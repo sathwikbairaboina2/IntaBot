@@ -13,6 +13,7 @@ import { ModerationProcessor } from "./moderation.processor";
 import { PollContainerProcessor } from "./poll-container.processor";
 import { PublishScanProcessor } from "./publish-scan.processor";
 import { PublishProcessor } from "./publish.processor";
+import { TokenRefreshProcessor } from "./token-refresh.processor";
 import {
   DRAFT_QUEUE,
   MODERATION_QUEUE,
@@ -21,6 +22,7 @@ import {
   PUBLISH_SCAN_QUEUE,
   QUEUE,
   REDIS_CONNECTION,
+  TOKEN_REFRESH_QUEUE,
   queuePrefix,
 } from "./queue.constants";
 import { WorkersService } from "./workers.service";
@@ -57,11 +59,13 @@ function queueProvider(token: symbol, name: string) {
     queueProvider(PUBLISH_QUEUE, QUEUE.publish),
     queueProvider(POLL_QUEUE, QUEUE.pollContainer),
     queueProvider(MODERATION_QUEUE, QUEUE.moderation),
+    queueProvider(TOKEN_REFRESH_QUEUE, QUEUE.tokenRefresh),
     DraftProcessor,
     PublishScanProcessor,
     PublishProcessor,
     PollContainerProcessor,
     ModerationProcessor,
+    TokenRefreshProcessor,
     WorkersService,
   ],
   exports: [
@@ -71,11 +75,13 @@ function queueProvider(token: symbol, name: string) {
     PUBLISH_QUEUE,
     POLL_QUEUE,
     MODERATION_QUEUE,
+    TOKEN_REFRESH_QUEUE,
     DraftProcessor,
     PublishScanProcessor,
     PublishProcessor,
     PollContainerProcessor,
     ModerationProcessor,
+    TokenRefreshProcessor,
   ],
 })
 export class JobsModule {}

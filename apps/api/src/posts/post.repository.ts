@@ -27,6 +27,7 @@ export interface CreatePostInput {
   hashtags: string[];
   scheduledAt: string;
   applyUrl?: string;
+  keyword?: string;
   source?: Post["source"];
 }
 
@@ -37,6 +38,7 @@ export type PostPatch = Partial<
     | "hashtags"
     | "scheduledAt"
     | "containerId"
+    | "childContainerIds"
     | "igMediaId"
     | "permalink"
     | "failureReason"
@@ -53,6 +55,8 @@ export interface TransitionArgs {
   expectedVersion: number;
   nextStatus: PostStatus;
   patch?: PostPatch;
+  /** Fields to remove, e.g. the old container and failure reason when a post is retried. */
+  clear?: Array<"containerId" | "childContainerIds" | "failureReason">;
 }
 
 @Injectable()
@@ -79,6 +83,7 @@ export class PostRepository {
       hashtags: input.hashtags,
       scheduledAt: input.scheduledAt,
       ...(input.applyUrl !== undefined ? { applyUrl: input.applyUrl } : {}),
+      ...(input.keyword !== undefined ? { keyword: input.keyword } : {}),
       ...(input.source !== undefined ? { source: input.source } : {}),
       createdAt: now,
       updatedAt: now,
@@ -125,7 +130,7 @@ export class PostRepository {
    * and this throws PostTransitionConflictError.
    */
   async transition(args: TransitionArgs): Promise<Post> {
-    const { accountId, postId, expectedStatus, expectedVersion, nextStatus, patch = {} } = args;
+    const { accountId, postId, expectedStatus, expectedVersion, nextStatus, patch = {}, clear = [] } = args;
 
     const scheduledAt = patch.scheduledAt;
     const setParts = [
@@ -162,12 +167,20 @@ export class PostRepository {
       values[":GSI1SK"] = scheduledAt;
     }
 
+    const removeParts: string[] = [];
+    for (const field of clear) {
+      if (field in patch) continue;
+      removeParts.push(`#${field}`);
+      names[`#${field}`] = field;
+    }
+    const removeClause = removeParts.length > 0 ? ` REMOVE ${removeParts.join(", ")}` : "";
+
     try {
       const out = await this.doc.send(
         new UpdateCommand({
           TableName: this.table,
           Key: keys.post(accountId, postId),
-          UpdateExpression: `SET ${setParts.join(", ")}`,
+          UpdateExpression: `SET ${setParts.join(", ")}${removeClause}`,
           ConditionExpression:
             "attribute_exists(PK) AND #status = :expectedStatus AND #version = :expectedVersion",
           ExpressionAttributeNames: names,

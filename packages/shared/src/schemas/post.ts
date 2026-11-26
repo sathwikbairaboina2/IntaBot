@@ -37,6 +37,10 @@ export const PostSchema = z.object({
   dryRun: z.boolean().optional(),
   /** Where the apply link in the caption points; keyword comments get it by DM. */
   applyUrl: z.string().url().optional(),
+  /** Extra comment word that requests the apply link on this post (besides the account's). */
+  keyword: z.string().optional(),
+  /** Carousel only: the child container ids, in slide order. */
+  childContainerIds: z.array(z.string().min(1)).optional(),
   /** The app and record that produced this post, e.g. a Studio job card. */
   source: z.object({ app: z.string().min(1), ref: z.string().min(1) }).optional(),
   createdAt: isoDateTime,

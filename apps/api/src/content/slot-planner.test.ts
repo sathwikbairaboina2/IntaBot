@@ -90,4 +90,39 @@ describe("nextFreeSlot", () => {
       }),
     ).toThrow(/no free slot/i);
   });
+
+  describe("Asia/Kolkata (UTC+05:30, no daylight saving)", () => {
+    const ist = (now: string, takenAt: string[] = []) =>
+      nextFreeSlot({ now: new Date(now), timezone: "Asia/Kolkata", windows, takenAt });
+
+    it("reads windows as local wall-clock times", () => {
+      // 06:00Z is 11:30 IST, so 12:30 IST (07:00Z) is the next window.
+      expect(ist("2026-11-26T06:00:00.000Z")).toBe("2026-11-26T07:00:00.000Z");
+    });
+
+    it("accepts a window exactly at the minimum lead time", () => {
+      // 03:00Z = 08:30 IST; 09:00 IST = 03:30Z is exactly 30 minutes ahead.
+      expect(ist("2026-11-26T03:00:00.000Z")).toBe("2026-11-26T03:30:00.000Z");
+    });
+
+    it("skips a window one second inside the lead time", () => {
+      expect(ist("2026-11-26T03:00:01.000Z")).toBe("2026-11-26T07:00:00.000Z");
+    });
+
+    it("rolls to tomorrow 09:00 IST after the last window", () => {
+      // 12:30Z = 18:00 IST on the 26th: nothing left today.
+      expect(ist("2026-11-26T12:30:00.000Z")).toBe("2026-11-27T03:30:00.000Z");
+    });
+
+    it("uses the local date, not the UTC date, just after midnight IST", () => {
+      // 19:00Z on the 26th is 00:30 IST on the 27th: 09:00 IST on the 27th.
+      expect(ist("2026-11-26T19:00:00.000Z")).toBe("2026-11-27T03:30:00.000Z");
+    });
+
+    it("steps over a taken slot to the next window", () => {
+      expect(ist("2026-11-26T06:00:00.000Z", ["2026-11-26T07:00:00.000Z"])).toBe(
+        "2026-11-26T12:30:00.000Z",
+      );
+    });
+  });
 });

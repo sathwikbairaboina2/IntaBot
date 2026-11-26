@@ -18,6 +18,8 @@ const account = {
   replyCapPerAccountPerHour: 20,
   blocklist: ["refund"],
   linkKeyword: "LINK",
+  listKeyword: "LIST",
+  listText: null,
   createdAt: "2026-08-14T00:00:00.000Z",
   updatedAt: "2026-08-14T00:00:00.000Z",
 } satisfies Account;

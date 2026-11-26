@@ -2,6 +2,8 @@ import { Module } from "@nestjs/common";
 import { AccountsModule } from "../accounts/accounts.module";
 import { AppConfigService } from "../config/config.service";
 import { InstagramModule } from "../instagram/instagram.module";
+import { CommentActionsService } from "./comment-actions.service";
+import { CommentsController } from "./comments.controller";
 import { ModerationController } from "./moderation.controller";
 import { AnthropicCommentClassifier } from "./anthropic-comment-classifier";
 import { AnthropicReplyWriter } from "./anthropic-reply-writer";
@@ -17,9 +19,10 @@ import { ReplyCapService } from "./reply-cap.service";
 
 @Module({
   imports: [AccountsModule, InstagramModule],
-  controllers: [ModerationController],
+  controllers: [ModerationController, CommentsController],
   providers: [
     CommentRepository,
+    CommentActionsService,
     IgMediaRefRepository,
     ReplyCapService,
     FakeCommentClassifier,

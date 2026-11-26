@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { HANDOFF_HASHTAGS, jobCaption } from "./caption";
+import { HANDOFF_HASHTAGS, HANDOFF_KEYWORD, contentCaption, jobCaption } from "./caption";
 
 describe("jobCaption", () => {
   it("fills the template exactly", () => {
@@ -41,5 +41,22 @@ describe("jobCaption", () => {
 
   it("keeps the hashtags constant", () => {
     expect(HANDOFF_HASHTAGS).toEqual(["#hiring", "#jobs"]);
+  });
+});
+
+describe("contentCaption", () => {
+  it("uses the title, a blank line and the keyword line", () => {
+    expect(contentCaption({ title: "Five roles this week", keyword: "ZOHO" })).toBe(
+      ["Five roles this week", "", "Comment ZOHO and we'll DM you the link."].join("\n"),
+    );
+  });
+});
+
+describe("keyword rule", () => {
+  it.each(["ZOHO", "Zoho2", "ab", "a1".repeat(10)])("accepts %j", (word) => {
+    expect(HANDOFF_KEYWORD.safeParse(word).success).toBe(true);
+  });
+  it.each(["", "a", "two words", "zoho!", "a".repeat(21), "naïve"])("rejects %j", (word) => {
+    expect(HANDOFF_KEYWORD.safeParse(word).success).toBe(false);
   });
 });

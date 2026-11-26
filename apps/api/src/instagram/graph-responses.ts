@@ -1,13 +1,43 @@
 import { z } from "zod";
 import type { ContainerStatus } from "./instagram.port";
 
-export class GraphApiError extends Error {
+export interface GraphErrorDetails {
+  /** HTTP status of the response; 0 when the call never got one. */
+  status?: number;
+  subcode?: number;
+  type?: string;
+  fbtraceId?: string;
+}
+
+/** A refused Graph call: Meta's error envelope, or a non-2xx answer without one. */
+export class GraphError extends Error {
+  readonly status: number;
+  readonly subcode: number | undefined;
+  readonly type: string | undefined;
+  readonly fbtraceId: string | undefined;
+
   constructor(
     readonly code: number,
     message: string,
+    details: GraphErrorDetails = {},
   ) {
     super(message);
+    this.name = "GraphError";
+    this.status = details.status ?? 0;
+    this.subcode = details.subcode;
+    this.type = details.type;
+    this.fbtraceId = details.fbtraceId;
   }
+}
+
+/** The name the rest of the code base already uses. */
+export const GraphApiError = GraphError;
+export type GraphApiError = GraphError;
+
+/** One line for failureReason fields: keeps Meta's code and message. */
+export function describeGraphError(err: unknown): string {
+  if (err instanceof GraphError) return `graph ${err.code}: ${err.message}`;
+  return err instanceof Error ? err.message : String(err);
 }
 
 export class NotImplementedError extends Error {
@@ -20,15 +50,64 @@ const ErrorShape = z.object({
   error: z.object({
     message: z.string(),
     code: z.number(),
+    type: z.string().optional(),
+    error_subcode: z.number().optional(),
+    fbtrace_id: z.string().optional(),
   }),
 });
 
-/** Throws GraphApiError when the payload is Meta's error envelope. */
-function rejectErrors(json: unknown): void {
+function envelopeError(json: unknown, status: number): GraphError | null {
   const parsed = ErrorShape.safeParse(json);
-  if (parsed.success) {
-    throw new GraphApiError(parsed.data.error.code, parsed.data.error.message);
+  if (!parsed.success) return null;
+  const e = parsed.data.error;
+  return new GraphError(e.code, e.message, {
+    status,
+    ...(e.error_subcode !== undefined ? { subcode: e.error_subcode } : {}),
+    ...(e.type !== undefined ? { type: e.type } : {}),
+    ...(e.fbtrace_id !== undefined ? { fbtraceId: e.fbtrace_id } : {}),
+  });
+}
+
+/** Throws GraphError when the payload is Meta's error envelope. */
+function rejectErrors(json: unknown): void {
+  const err = envelopeError(json, 200);
+  if (err) throw err;
+}
+
+/**
+ * Reads a Graph response body. A non-2xx answer or an error envelope becomes a
+ * GraphError carrying the HTTP status; a body that is not JSON on a failing
+ * status still yields one, so a 500 HTML page is not a parse crash.
+ */
+export async function readGraphResponse(res: {
+  ok?: boolean;
+  status?: number;
+  json(): Promise<unknown>;
+}): Promise<unknown> {
+  const status = res.status ?? 200;
+  const failed = res.ok === false;
+  let body: unknown;
+  try {
+    body = await res.json();
+  } catch {
+    if (failed) throw new GraphError(0, `instagram answered HTTP ${status} without a JSON body`, { status });
+    throw new GraphError(0, "instagram answered with a body that is not JSON", { status });
   }
+  const err = envelopeError(body, status);
+  if (err) throw err;
+  if (failed) throw new GraphError(0, `instagram answered HTTP ${status}`, { status });
+  return body;
+}
+
+const RefreshShape = z.object({
+  access_token: z.string().min(1),
+  expires_in: z.number().positive(),
+});
+
+export function parseTokenRefresh(json: unknown): { accessToken: string; expiresInSeconds: number } {
+  rejectErrors(json);
+  const parsed = RefreshShape.parse(json);
+  return { accessToken: parsed.access_token, expiresInSeconds: parsed.expires_in };
 }
 
 const IdShape = z.object({ id: z.string().min(1) });
@@ -72,4 +151,12 @@ const PrivateReplyShape = z.object({ message_id: z.string().min(1) });
 export function parsePrivateReply(json: unknown): { messageId: string } {
   rejectErrors(json);
   return { messageId: PrivateReplyShape.parse(json).message_id };
+}
+
+const SuccessShape = z.object({ success: z.literal(true) });
+
+/** Hide and delete answer `{"success": true}`. */
+export function parseSuccess(json: unknown): void {
+  rejectErrors(json);
+  SuccessShape.parse(json);
 }

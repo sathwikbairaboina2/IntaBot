@@ -2,7 +2,7 @@ import { Module } from "@nestjs/common";
 import { AppConfigService } from "../config/config.service";
 import { TokenCryptoService } from "../crypto/token-crypto.service";
 import { FakeInstagramAdapter } from "./fake-instagram.adapter";
-import { GraphInstagramAdapter } from "./graph-instagram.adapter";
+import { GraphInstagramAdapter, graphBaseUrl } from "./graph-instagram.adapter";
 import { INSTAGRAM_PORT } from "./instagram.port";
 
 @Module({
@@ -24,7 +24,7 @@ import { INSTAGRAM_PORT } from "./instagram.port";
         if (!config.meta.appSecret) {
           throw new Error("INSTAGRAM_MODE=live requires META_APP_SECRET");
         }
-        return new GraphInstagramAdapter(config, crypto);
+        return new GraphInstagramAdapter(config, crypto, fetch, graphBaseUrl(config.instagramGraphVersion));
       },
     },
   ],

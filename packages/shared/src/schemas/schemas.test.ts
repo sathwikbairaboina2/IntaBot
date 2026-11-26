@@ -2,7 +2,9 @@ import { describe, expect, it } from "vitest";
 import {
   AccountSchema,
   CommentSchema,
+  IanaTimezone,
   MediaAssetSchema,
+  PostingWindows,
   PostSchema,
   UserSchema,
 } from "../index.js";
@@ -308,5 +310,138 @@ describe("handoff schema additions", () => {
     });
     expect(parsed.source).toEqual({ app: "iolar-studio", ref: "card-1" });
     expect(() => PostSchema.parse({ ...basePost, applyUrl: "not a url" })).toThrow();
+  });
+});
+
+describe("control room schema additions", () => {
+  const baseAccount = {
+    id: "acct-1",
+    name: "Studio Nord",
+    igUserId: "1784140",
+    username: "studionord",
+    status: "ACTIVE",
+    accessTokenEncrypted: "v1:a:b:c",
+    tokenExpiresAt: "2026-10-13T00:00:00.000Z",
+    createdAt: "2026-08-14T00:00:00.000Z",
+    updatedAt: "2026-08-14T00:00:00.000Z",
+  };
+  const basePost = {
+    id: "post-1",
+    accountId: "acct-1",
+    status: "PENDING_APPROVAL",
+    format: "CAROUSEL",
+    version: 1,
+    mediaAssetIds: ["asset-1", "asset-2"],
+    caption: "Hiring.",
+    hashtags: [],
+    scheduledAt: "2026-08-15T09:00:00.000Z",
+    createdAt: "2026-08-14T00:00:00.000Z",
+    updatedAt: "2026-08-14T00:00:00.000Z",
+  };
+
+  it("defaults listKeyword to LIST and listText to null", () => {
+    const parsed = AccountSchema.parse(baseAccount);
+    expect(parsed.listKeyword).toBe("LIST");
+    expect(parsed.listText).toBeNull();
+  });
+
+  it("keeps an explicit listText and caps it at 1000 characters", () => {
+    expect(AccountSchema.parse({ ...baseAccount, listText: "all jobs: x" }).listText).toBe(
+      "all jobs: x",
+    );
+    expect(() => AccountSchema.parse({ ...baseAccount, listText: "x".repeat(1001) })).toThrow();
+    expect(() => AccountSchema.parse({ ...baseAccount, listKeyword: "" })).toThrow();
+  });
+
+  it("accepts a post keyword and child containers", () => {
+    const parsed = PostSchema.parse({
+      ...basePost,
+      keyword: "ZOHO",
+      childContainerIds: ["c1", "c2"],
+    });
+    expect(parsed.keyword).toBe("ZOHO");
+    expect(parsed.childContainerIds).toEqual(["c1", "c2"]);
+    expect(PostSchema.parse(basePost).keyword).toBeUndefined();
+  });
+
+  it("accepts hidden and deleted flags on a comment", () => {
+    const parsed = CommentSchema.parse({
+      igCommentId: "c-1",
+      accountId: "acct-1",
+      postId: "post-1",
+      igMediaId: "m-1",
+      text: "hi",
+      fromIgUserId: "u-1",
+      fromUsername: "someone",
+      status: "RECEIVED",
+      version: 1,
+      hidden: true,
+      deleted: false,
+      createdAt: "2026-08-14T00:00:00.000Z",
+      updatedAt: "2026-08-14T00:00:00.000Z",
+    });
+    expect(parsed.hidden).toBe(true);
+    expect(parsed.deleted).toBe(false);
+  });
+});
+
+describe("launch fix schema additions", () => {
+  const baseAccount = {
+    id: "acct-1",
+    name: "Studio Nord",
+    igUserId: "1784140",
+    username: "studionord",
+    status: "ACTIVE",
+    accessTokenEncrypted: "v1:a:b:c",
+    tokenExpiresAt: "2026-10-13T00:00:00.000Z",
+    createdAt: "2026-08-14T00:00:00.000Z",
+    updatedAt: "2026-08-14T00:00:00.000Z",
+  };
+  const baseComment = {
+    igCommentId: "c1",
+    accountId: "acct-1",
+    postId: "p1",
+    igMediaId: "m1",
+    text: "LINK",
+    fromIgUserId: "u1",
+    fromUsername: "someone",
+    status: "AUTO_REPLIED",
+    version: 1,
+    createdAt: "2026-08-14T00:00:00.000Z",
+    updatedAt: "2026-08-14T00:00:00.000Z",
+  };
+
+  it("validates IANA zones and posting windows", () => {
+    expect(IanaTimezone.safeParse("Asia/Kolkata").success).toBe(true);
+    expect(IanaTimezone.safeParse("UTC").success).toBe(true);
+    expect(IanaTimezone.safeParse("Mars/Olympus").success).toBe(false);
+    expect(IanaTimezone.safeParse("").success).toBe(false);
+
+    expect(PostingWindows.parse(["18:00", "09:00"])).toEqual(["09:00", "18:00"]);
+    expect(PostingWindows.safeParse([]).success).toBe(false);
+    expect(PostingWindows.safeParse(["09:00", "09:00"]).success).toBe(false);
+    expect(PostingWindows.safeParse(["9:00"]).success).toBe(false);
+    expect(PostingWindows.safeParse(["01:00", "02:00", "03:00", "04:00", "05:00", "06:00", "07:00"]).success).toBe(false);
+  });
+
+  it("keeps the refresh error optional and nullable on an account", () => {
+    expect(AccountSchema.parse(baseAccount).tokenRefreshError).toBeUndefined();
+    expect(AccountSchema.parse({ ...baseAccount, tokenRefreshError: null }).tokenRefreshError).toBeNull();
+    expect(AccountSchema.parse({ ...baseAccount, tokenRefreshError: "graph 190: x" }).tokenRefreshError).toBe("graph 190: x");
+  });
+
+  it("records the DM state, its error and a failure reason on a comment", () => {
+    const parsed = CommentSchema.parse({
+      ...baseComment,
+      dmState: "failed",
+      dmError: "graph 10: no permission",
+      failureReason: "graph 4: rate limit",
+    });
+    expect(parsed.dmState).toBe("failed");
+    expect(CommentSchema.parse(baseComment).dmState).toBeUndefined();
+    expect(() => CommentSchema.parse({ ...baseComment, dmState: "maybe" })).toThrow();
+    for (const state of ["sent", "failed", "skipped"]) {
+      expect(CommentSchema.parse({ ...baseComment, dmState: state }).dmState).toBe(state);
+    }
   });
 });

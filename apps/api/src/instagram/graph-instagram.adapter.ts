@@ -10,6 +10,9 @@ import {
   parsePrivateReply,
   parsePublish,
   parseReply,
+  parseTokenRefresh,
+  readGraphResponse,
+  parseSuccess,
 } from "./graph-responses";
 import type {
   ContainerInput,
@@ -19,10 +22,16 @@ import type {
   InstagramPort,
   PrivateReplyResult,
   PublishResult,
+  RefreshedToken,
   ReplyResult,
 } from "./instagram.port";
 
 export const GRAPH_BASE_URL = "https://graph.instagram.com";
+
+/** Unset keeps the unversioned URLs; INSTAGRAM_GRAPH_VERSION (e.g. v21.0) pins one. */
+export function graphBaseUrl(version: string | undefined): string {
+  return version ? `${GRAPH_BASE_URL}/${version}` : GRAPH_BASE_URL;
+}
 
 /**
  * Real Instagram Graph adapter. The account token is decrypted per call and
@@ -55,7 +64,7 @@ export class GraphInstagramAdapter implements InstagramPort {
       headers: { "content-type": "application/x-www-form-urlencoded" },
       body: new URLSearchParams(body).toString(),
     });
-    return res.json();
+    return readGraphResponse(res);
   }
 
   private async postJson(path: string, token: string, body: unknown): Promise<unknown> {
@@ -64,36 +73,60 @@ export class GraphInstagramAdapter implements InstagramPort {
       headers: { "content-type": "application/json", authorization: `Bearer ${token}` },
       body: JSON.stringify(body),
     });
-    return res.json();
+    return readGraphResponse(res);
+  }
+
+  private async delete(path: string, params: Record<string, string>): Promise<unknown> {
+    const query = new URLSearchParams(params).toString();
+    const res = await this.fetchImpl(`${this.baseUrl}${path}?${query}`, { method: "DELETE" });
+    return readGraphResponse(res);
   }
 
   private async get(path: string, params: Record<string, string>): Promise<unknown> {
     const query = new URLSearchParams(params).toString();
     const res = await this.fetchImpl(`${this.baseUrl}${path}?${query}`);
-    return res.json();
+    return readGraphResponse(res);
   }
 
   async createContainer(
     account: Account,
     input: ContainerInput,
   ): Promise<{ containerId: string }> {
-    if (input.format === "CAROUSEL") {
-      // Child containers are deferred; single image / reel / story only.
-      throw new NotImplementedError("carousel publishing");
-    }
+    const body: Record<string, string> = { access_token: this.token(account) };
 
-    const body: Record<string, string> = {
-      access_token: this.token(account),
-      caption: input.caption,
-    };
-    if (input.format === "IMAGE") {
+    if (input.format === "CAROUSEL") {
+      // The carousel container names its already-finished children, in order.
+      if (!input.childContainerIds?.length) {
+        throw new Error("a carousel container needs its children");
+      }
+      body.media_type = "CAROUSEL";
+      body.children = input.childContainerIds.join(",");
+      body.caption = input.caption;
+    } else if (input.isCarouselItem) {
+      // A slide carries no caption; the carousel container does.
+      body.image_url = input.mediaUrl;
+      body.is_carousel_item = "true";
+    } else if (input.format === "IMAGE") {
+      body.caption = input.caption;
       body.image_url = input.mediaUrl;
     } else {
+      body.caption = input.caption;
       body.media_type = input.format === "STORY" ? "STORIES" : "REELS";
       body.video_url = input.mediaUrl;
+      if (input.format === "REEL") body.share_to_feed = "true";
     }
 
     return parseContainerCreated(await this.post(`/${account.igUserId}/media`, body));
+  }
+
+  async refreshAccessToken(account: Account): Promise<RefreshedToken> {
+    // The refresh endpoint is never versioned.
+    const query = new URLSearchParams({
+      grant_type: "ig_refresh_token",
+      access_token: this.token(account),
+    }).toString();
+    const res = await this.fetchImpl(`${GRAPH_BASE_URL}/refresh_access_token?${query}`);
+    return parseTokenRefresh(await readGraphResponse(res));
   }
 
   async getContainerStatus(account: Account, containerId: string): Promise<ContainerStatus> {
@@ -141,6 +174,19 @@ export class GraphInstagramAdapter implements InstagramPort {
         message: { text },
       }),
     );
+  }
+
+  async hideComment(account: Account, commentId: string, hidden: boolean): Promise<void> {
+    parseSuccess(
+      await this.post(`/${commentId}`, {
+        access_token: this.token(account),
+        hide: hidden ? "true" : "false",
+      }),
+    );
+  }
+
+  async deleteComment(account: Account, commentId: string): Promise<void> {
+    parseSuccess(await this.delete(`/${commentId}`, { access_token: this.token(account) }));
   }
 
   async getAccountInsights(

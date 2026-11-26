@@ -1,8 +1,9 @@
 import { Inject, Injectable, Logger } from "@nestjs/common";
 import { ulid } from "ulid";
-import type { Account, Classification, Comment } from "@intabot/shared";
+import type { Account, Classification, Comment, Post } from "@intabot/shared";
 import { AccountRepository } from "../accounts/account.repository";
 import { AuditRepository } from "../audit/audit.repository";
+import { describeGraphError } from "../instagram/graph-responses";
 import { INSTAGRAM_PORT, type InstagramPort } from "../instagram/instagram.port";
 import {
   COMMENT_CLASSIFIER,
@@ -13,7 +14,7 @@ import {
   CommentTransitionConflictError,
 } from "../moderation/comment.repository";
 import { IgMediaRefRepository } from "../moderation/ig-media-ref.repository";
-import { isLinkRequest } from "../moderation/link-request";
+import { mentionsAny } from "../moderation/link-request";
 import { policyGate } from "../moderation/policy-gate";
 import { ReplyCapService } from "../moderation/reply-cap.service";
 import { REPLY_WRITER, type ReplyWriterPort } from "../moderation/reply-writer.port";
@@ -27,10 +28,17 @@ export interface ModerationJobData {
   fromIgUserId: string;
   fromUsername: string;
   text: string;
+  /** When the comment was made, if the webhook said; Meta only allows a private reply for 7 days. */
+  commentedAt?: string;
 }
+
+/** Meta's window for answering a comment with a private reply. */
+export const PRIVATE_REPLY_WINDOW_MS = 7 * 86_400_000;
 
 export const LINK_REQUEST_RULE = "link-request";
 export const LINK_REQUEST_REPLY = "Sent you the link in your DMs.";
+export const LIST_REQUEST_RULE = "list-request";
+export const LIST_REQUEST_REPLY = "Sent you the list in your DMs.";
 
 /** Stands in for the model's verdict so the gate's paused/blocklist/cap rules
  * still apply to a keyword comment that never reaches the classifier. */
@@ -41,6 +49,13 @@ const NEUTRAL_CLASSIFICATION: Classification = {
   isSpam: false,
   needsHuman: false,
 };
+
+interface KeywordDm {
+  rule: string;
+  audit: string;
+  replyText: string;
+  dmText: string;
+}
 
 export type ModerationOutcome =
   | "unknown-media"
@@ -98,9 +113,12 @@ export class ModerationProcessor {
     const post = await this.posts.get(ref.accountId, ref.postId);
     const postCaption = post?.caption ?? "";
 
-    // A keyword comment on a post with an apply link is answered by a fixed
-    // rule, not the model: public reply plus a private DM with the link.
-    if (post?.applyUrl && isLinkRequest(data.text, account.linkKeyword ?? "LINK")) {
+    // A keyword comment is answered by a fixed rule, not the model: public
+    // reply plus a private DM. The link keyword (the post's own or the
+    // account's) needs an apply link; the list keyword needs the account's
+    // list text, and works on any post.
+    const dm = this.keywordDm(account, post, data.text);
+    if (dm) {
       const caps = await this.replyCaps.check(account.id, ref.postId, account);
       const verdict = policyGate({
         account,
@@ -115,7 +133,7 @@ export class ModerationProcessor {
       if (verdict.action === "ignore") {
         return this.settle(account, comment, "IGNORED", verdict.rule, null);
       }
-      return this.replyWithLink(account, comment, post.applyUrl);
+      return this.replyWithDm(account, comment, dm, data.commentedAt);
     }
 
     const classification = await this.classifier.classify({
@@ -143,11 +161,34 @@ export class ModerationProcessor {
     return this.reply(account, comment, classification, postCaption, verdict.rule);
   }
 
+  /** Which fixed reply a comment asks for, if any. The post's link request wins over LIST. */
+  private keywordDm(account: Account, post: Post | null, text: string): KeywordDm | null {
+    if (post?.applyUrl && mentionsAny(text, [post.keyword, account.linkKeyword ?? "LINK"])) {
+      return {
+        rule: LINK_REQUEST_RULE,
+        audit: "comment.link-request",
+        replyText: LINK_REQUEST_REPLY,
+        dmText: `Here is the apply link: ${post.applyUrl}`,
+      };
+    }
+    const listText = account.listText?.trim();
+    if (listText && mentionsAny(text, [account.listKeyword ?? "LIST"])) {
+      return {
+        rule: LIST_REQUEST_RULE,
+        audit: "comment.list-request",
+        replyText: LIST_REQUEST_REPLY,
+        dmText: listText,
+      };
+    }
+    return null;
+  }
+
   /** Claim first, then the public reply and the DM; a duplicated job does neither twice. */
-  private async replyWithLink(
+  private async replyWithDm(
     account: Account,
     comment: Comment,
-    applyUrl: string,
+    dm: KeywordDm,
+    commentedAt?: string,
   ): Promise<{ outcome: ModerationOutcome }> {
     let claimed: Comment;
     try {
@@ -158,7 +199,7 @@ export class ModerationProcessor {
         expectedStatus: "RECEIVED",
         expectedVersion: comment.version,
         nextStatus: "AUTO_REPLIED",
-        patch: { policyRule: LINK_REQUEST_RULE },
+        patch: { policyRule: dm.rule },
       });
     } catch (err) {
       if (err instanceof CommentTransitionConflictError) {
@@ -168,19 +209,19 @@ export class ModerationProcessor {
       throw err;
     }
 
-    const replyText = LINK_REQUEST_REPLY;
-    const dmText = `Here is the apply link: ${applyUrl}`;
+    const { replyText, dmText } = dm;
     let replyId: string;
-    let dmId: string;
-    if (account.dryRun) {
-      replyId = `dryrun-${ulid()}`;
-      dmId = `dryrun-${ulid()}`;
-    } else {
-      replyId = (await this.instagram.replyToComment(account, comment.igCommentId, replyText))
-        .replyId;
-      dmId = (await this.instagram.sendPrivateReply(account, comment.igCommentId, dmText))
-        .messageId;
+    try {
+      replyId = account.dryRun
+        ? `dryrun-${ulid()}`
+        : (await this.instagram.replyToComment(account, comment.igCommentId, replyText)).replyId;
+    } catch (err) {
+      return this.replyFailed(account, comment, claimed, err);
     }
+
+    // The public reply is out. Whatever happens to the DM is recorded on the
+    // comment rather than lost: a failed one can be resent from the panel.
+    const dmPatch = await this.sendDm(account, comment, dmText, commentedAt);
 
     await this.comments.transition({
       postId: comment.postId,
@@ -189,11 +230,55 @@ export class ModerationProcessor {
       expectedStatus: "AUTO_REPLIED",
       expectedVersion: claimed.version,
       nextStatus: "AUTO_REPLIED",
-      patch: { replyText, replyId, dmText, dmId },
+      patch: { replyText, replyId, dmText, ...dmPatch },
     });
     await this.replyCaps.increment(account.id, comment.postId);
-    await this.appendAudit(account, comment, "comment.link-request", LINK_REQUEST_RULE, null);
+    await this.appendAudit(account, comment, dm.audit, dm.rule, null);
     return { outcome: "replied" };
+  }
+
+  private async sendDm(
+    account: Account,
+    comment: Comment,
+    dmText: string,
+    commentedAt: string | undefined,
+  ): Promise<Pick<Comment, "dmState" | "dmId" | "dmError">> {
+    if (commentedAt && Date.now() - new Date(commentedAt).getTime() > PRIVATE_REPLY_WINDOW_MS) {
+      return {
+        dmState: "skipped",
+        dmError: "comment is older than 7 days; Instagram only allows a private reply within 7 days",
+      };
+    }
+    if (account.dryRun) return { dmState: "sent", dmId: `dryrun-${ulid()}` };
+    try {
+      const { messageId } = await this.instagram.sendPrivateReply(account, comment.igCommentId, dmText);
+      return { dmState: "sent", dmId: messageId };
+    } catch (err) {
+      this.logger.warn(`DM for comment ${comment.igCommentId} failed: ${describeGraphError(err)}`);
+      return { dmState: "failed", dmError: describeGraphError(err) };
+    }
+  }
+
+  /** The public reply was refused: hand the comment to a human with the reason. */
+  private async replyFailed(
+    account: Account,
+    comment: Comment,
+    claimed: Comment,
+    err: unknown,
+  ): Promise<{ outcome: ModerationOutcome }> {
+    const failureReason = describeGraphError(err);
+    this.logger.warn(`reply to comment ${comment.igCommentId} failed: ${failureReason}`);
+    await this.comments.transition({
+      postId: comment.postId,
+      igCommentId: comment.igCommentId,
+      accountId: comment.accountId,
+      expectedStatus: "AUTO_REPLIED",
+      expectedVersion: claimed.version,
+      nextStatus: "ESCALATED",
+      patch: { policyRule: "reply-failed", failureReason },
+    });
+    await this.appendAudit(account, comment, "ESCALATED", "reply-failed", null);
+    return { outcome: "escalated" };
   }
 
   /** Claim first, side-effect second — a duplicated job replies at most once. */
@@ -249,9 +334,14 @@ export class ModerationProcessor {
       throw err;
     }
 
-    const replyId = account.dryRun
-      ? `dryrun-${ulid()}`
-      : (await this.instagram.replyToComment(account, comment.igCommentId, replyText)).replyId;
+    let replyId: string;
+    try {
+      replyId = account.dryRun
+        ? `dryrun-${ulid()}`
+        : (await this.instagram.replyToComment(account, comment.igCommentId, replyText)).replyId;
+    } catch (err) {
+      return this.replyFailed(account, comment, claimed, err);
+    }
 
     await this.comments.transition({
       postId: comment.postId,

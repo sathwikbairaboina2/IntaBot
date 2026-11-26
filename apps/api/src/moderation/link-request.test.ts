@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { isLinkRequest } from "./link-request";
+import { isLinkRequest, mentionsAny } from "./link-request";
 
 describe("isLinkRequest", () => {
   it.each(["LINK", "link pls", "Link!", "  link  ", "send me the LINK please", "🔥link🔥", "(link)", "link, thanks", "please.link"])(
@@ -25,5 +25,14 @@ describe("isLinkRequest", () => {
     expect(isLinkRequest("c++ job", "c++")).toBe(true);
     expect(isLinkRequest("anything", "")).toBe(false);
     expect(isLinkRequest("anything", "  ")).toBe(false);
+  });
+});
+
+describe("mentionsAny", () => {
+  it("matches any of the words, skipping empty ones", () => {
+    expect(mentionsAny("send ZOHO please", ["LINK", "ZOHO"])).toBe(true);
+    expect(mentionsAny("send link please", ["LINK", undefined])).toBe(true);
+    expect(mentionsAny("send it please", ["LINK", "ZOHO", undefined, ""])).toBe(false);
+    expect(mentionsAny("zohoo", ["ZOHO"])).toBe(false);
   });
 });

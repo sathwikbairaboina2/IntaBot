@@ -11,6 +11,7 @@ import { Comment, CommentSchema, CommentStatus } from "@intabot/shared";
 import { AppConfigService } from "../config/config.service";
 import { DYNAMO_DOC } from "../dynamo/dynamo.module";
 import { keys } from "../dynamo/keys";
+import { CommentPage, CommentPageOptions, pageComments } from "./comment-page";
 
 export class CommentTransitionConflictError extends Error {
   constructor(igCommentId: string, expectedStatus: CommentStatus, expectedVersion: number) {
@@ -29,7 +30,10 @@ export interface CreateCommentInput {
 }
 
 export type CommentPatch = Partial<
-  Pick<Comment, "classification" | "policyRule" | "replyText" | "replyId" | "dmText" | "dmId">
+  Pick<
+    Comment,
+    "classification" | "policyRule" | "replyText" | "replyId" | "dmText" | "dmId" | "dmState" | "dmError" | "failureReason" | "hidden" | "deleted"
+  >
 >;
 
 export interface CommentTransitionArgs {
@@ -92,6 +96,50 @@ export class CommentRepository {
       new GetCommand({ TableName: this.table, Key: keys.comment(postId, igCommentId) }),
     );
     return out.Item ? CommentSchema.parse(out.Item) : null;
+  }
+
+  /** Every comment stored for one post, oldest first. */
+  async listByPost(postId: string): Promise<Comment[]> {
+    const out = await this.doc.send(
+      new QueryCommand({
+        TableName: this.table,
+        KeyConditionExpression: "PK = :pk AND begins_with(SK, :prefix)",
+        ExpressionAttributeValues: { ":pk": `POST#${postId}`, ":prefix": "CMT#" },
+      }),
+    );
+    return (out.Items ?? [])
+      .map((item) => CommentSchema.parse(item))
+      .sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+  }
+
+  /** Newest-first page of an account's comments, across posts and (unless named) statuses. */
+  async listRecent(
+    accountId: string,
+    opts: CommentPageOptions & { status?: CommentStatus | undefined },
+  ): Promise<CommentPage> {
+    const statuses = opts.status ? [opts.status] : CommentStatus.options;
+    const from = opts.since ?? "0000-01-01T00:00:00.000Z";
+    const to = opts.before ?? "9999-12-31T23:59:59.999Z";
+    const found: Comment[] = [];
+    for (const status of statuses) {
+      const out = await this.doc.send(
+        new QueryCommand({
+          TableName: this.table,
+          IndexName: "GSI1",
+          KeyConditionExpression: "GSI1PK = :pk AND GSI1SK BETWEEN :from AND :to",
+          ExpressionAttributeValues: {
+            ":pk": `ACCT#${accountId}#CST#${status}`,
+            ":from": from,
+            ":to": to,
+          },
+          ScanIndexForward: false,
+          // One more than a page from each status is enough to fill the merged page.
+          Limit: opts.limit + 1,
+        }),
+      );
+      found.push(...(out.Items ?? []).map((item) => CommentSchema.parse(item)));
+    }
+    return pageComments(found, opts);
   }
 
   async listByStatus(

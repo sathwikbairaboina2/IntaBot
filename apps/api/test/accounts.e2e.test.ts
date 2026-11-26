@@ -120,4 +120,75 @@ describe("accounts", () => {
       .expect(200);
     expect(patched.body.linkKeyword).toBe("APPLY");
   });
+
+  it("patches listKeyword and listText, rejecting a text over 1000 characters", async () => {
+    const created = await request(app.getHttpServer())
+      .post("/accounts")
+      .set("Cookie", cookie)
+      .send(body)
+      .expect(201);
+    expect(created.body).toMatchObject({ listKeyword: "LIST", listText: null });
+    const patched = await request(app.getHttpServer())
+      .patch(`/accounts/${created.body.id}`)
+      .set("Cookie", cookie)
+      .send({ listKeyword: "JOBS", listText: "This week: a, b, c" })
+      .expect(200);
+    expect(patched.body).toMatchObject({ listKeyword: "JOBS", listText: "This week: a, b, c" });
+    await request(app.getHttpServer())
+      .patch(`/accounts/${created.body.id}`)
+      .set("Cookie", cookie)
+      .send({ listText: "x".repeat(1001) })
+      .expect(400);
+    const cleared = await request(app.getHttpServer())
+      .patch(`/accounts/${created.body.id}`)
+      .set("Cookie", cookie)
+      .send({ listText: null })
+      .expect(200);
+    expect(cleared.body.listText).toBeNull();
+  });
+
+  it("gives new accounts the default zone (Asia/Kolkata) and shows the token's days left", async () => {
+    const expires = new Date(Date.now() + 40 * 86_400_000 + 3_600_000).toISOString();
+    const created = await request(app.getHttpServer())
+      .post("/accounts")
+      .set("Cookie", cookie)
+      .send({ ...body, tokenExpiresAt: expires })
+      .expect(201);
+    expect(created.body.timezone).toBe("Asia/Kolkata");
+    expect(created.body.tokenDaysLeft).toBe(40);
+    const listed = await request(app.getHttpServer()).get("/accounts").set("Cookie", cookie).expect(200);
+    expect(listed.body[0]).toMatchObject({ tokenExpiresAt: expires, tokenDaysLeft: 40 });
+    const one = await request(app.getHttpServer())
+      .get(`/accounts/${created.body.id}`)
+      .set("Cookie", cookie)
+      .expect(200);
+    expect(one.body.tokenDaysLeft).toBe(40);
+  });
+
+  it("patches timezone and postingWindows, validating both", async () => {
+    const created = await request(app.getHttpServer())
+      .post("/accounts")
+      .set("Cookie", cookie)
+      .send(body)
+      .expect(201);
+    const url = `/accounts/${created.body.id}`;
+    const patched = await request(app.getHttpServer())
+      .patch(url)
+      .set("Cookie", cookie)
+      .send({ timezone: "Europe/Berlin", postingWindows: ["18:00", "09:00"] })
+      .expect(200);
+    expect(patched.body).toMatchObject({ timezone: "Europe/Berlin", postingWindows: ["09:00", "18:00"] });
+
+    for (const bad of [
+      { timezone: "Mars/Olympus" },
+      { postingWindows: [] },
+      { postingWindows: ["09:00", "09:00"] },
+      { postingWindows: ["9am"] },
+      { postingWindows: ["01:00", "02:00", "03:00", "04:00", "05:00", "06:00", "07:00"] },
+    ]) {
+      await request(app.getHttpServer()).patch(url).set("Cookie", cookie).send(bad).expect(400);
+    }
+    const after = await request(app.getHttpServer()).get(url).set("Cookie", cookie).expect(200);
+    expect(after.body).toMatchObject({ timezone: "Europe/Berlin", postingWindows: ["09:00", "18:00"] });
+  });
 });

@@ -38,13 +38,14 @@ describe("queuePrefix", () => {
 });
 
 describe("QUEUE", () => {
-  it("names all five queues", () => {
+  it("names all six queues", () => {
     expect(Object.values(QUEUE)).toEqual([
       "draft",
       "publish-scan",
       "publish",
       "poll-container",
       "moderation",
+      "token-refresh",
     ]);
   });
 });

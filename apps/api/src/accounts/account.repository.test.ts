@@ -64,6 +64,17 @@ describe("AccountRepository", () => {
     expect(updated.linkKeyword).toBe("APPLY");
   });
 
+  it("defaults the list fields and updates them, null clearing the text", async () => {
+    const created = await repo.create(input);
+    expect(created.listKeyword).toBe("LIST");
+    expect(created.listText).toBeNull();
+    const updated = await repo.update(created.id, { listKeyword: "JOBS", listText: "the list" });
+    expect(updated).toMatchObject({ listKeyword: "JOBS", listText: "the list" });
+    const cleared = await repo.update(created.id, { listText: null });
+    expect(cleared.listText).toBeNull();
+    expect(cleared.listKeyword).toBe("JOBS");
+  });
+
   it("keeps the GSI1SK in sync when the name changes", async () => {
     const created = await repo.create(input);
     await repo.update(created.id, { name: "Aardvark Co" });

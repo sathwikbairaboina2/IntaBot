@@ -14,6 +14,12 @@ function digest(value: string): Buffer {
   return createHash("sha256").update(value).digest();
 }
 
+/** Timing-safe comparison of a presented handoff key with the configured one. */
+export function handoffKeyMatches(given: string, expected: string): boolean {
+  // Hashing first gives both sides the same length, which timingSafeEqual needs.
+  return timingSafeEqual(digest(given), digest(expected));
+}
+
 /** Shared-secret guard for the Studio handoff. No session cookie is involved. */
 @Injectable()
 export class HandoffKeyGuard implements CanActivate {
@@ -25,8 +31,7 @@ export class HandoffKeyGuard implements CanActivate {
 
     const request = context.switchToHttp().getRequest<Request>();
     const given = request.header("x-handoff-key");
-    // Hashing first gives both sides the same length, which timingSafeEqual needs.
-    if (!given || !timingSafeEqual(digest(given), digest(expected))) {
+    if (!given || !handoffKeyMatches(given, expected)) {
       throw new UnauthorizedException();
     }
     return true;

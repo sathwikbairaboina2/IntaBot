@@ -14,6 +14,7 @@ import { JobsModule } from "./jobs/jobs.module";
 import { MediaModule } from "./media/media.module";
 import { ModerationModule } from "./moderation/moderation.module";
 import { PostsModule } from "./posts/posts.module";
+import { StatusController } from "./status/status.controller";
 import { WebhooksModule } from "./webhooks/webhooks.module";
 
 @Module({
@@ -34,6 +35,6 @@ import { WebhooksModule } from "./webhooks/webhooks.module";
     WebhooksModule,
     HandoffModule,
   ],
-  controllers: [HealthController],
+  controllers: [HealthController, StatusController],
 })
 export class AppModule {}

@@ -1,3 +1,4 @@
+import { IanaTimezone } from "@intabot/shared";
 import { z } from "zod";
 
 const base64Key32 = z
@@ -33,6 +34,10 @@ const EnvSchema = z.object({
   META_WEBHOOK_VERIFY_TOKEN: optionalString(z.string().min(1)),
   ANTHROPIC_API_KEY: optionalString(z.string().min(1)),
   INSTAGRAM_MODE: z.enum(["fake", "live"]).default("fake"),
+  /** Pins the Graph API version in request URLs (for example v21.0). Unset keeps the unversioned URLs. */
+  INSTAGRAM_GRAPH_VERSION: optionalString(z.string().regex(/^v\d+\.\d+$/, "expected a version such as v21.0")),
+  /** Zone given to accounts created from now on. */
+  BOT_DEFAULT_TZ: z.preprocess((v) => (v === "" ? undefined : v), IanaTimezone.default("Asia/Kolkata")),
   /**
    * Which implementation backs the three model roles. Unset keeps the original
    * behaviour: a key means Anthropic, no key means the deterministic fakes.
@@ -65,6 +70,10 @@ export interface AppConfig {
   anthropicApiKey?: string;
   /** "live" swaps FakeInstagramAdapter for the real Graph adapter. */
   instagramMode: "fake" | "live";
+  /** Version segment for Graph URLs, or undefined for the unversioned ones. */
+  instagramGraphVersion?: string;
+  /** IANA zone for newly created accounts. */
+  defaultTimezone: string;
   /** Resolved implementation for the copy writer, classifier and reply writer. */
   llmProvider: "fake" | "anthropic" | "ollama";
   ollama: { baseUrl: string; model: string };
@@ -106,6 +115,8 @@ export function parseEnv(raw: NodeJS.ProcessEnv | Record<string, string | undefi
     },
     anthropicApiKey: e.ANTHROPIC_API_KEY,
     instagramMode: e.INSTAGRAM_MODE,
+    instagramGraphVersion: e.INSTAGRAM_GRAPH_VERSION,
+    defaultTimezone: e.BOT_DEFAULT_TZ,
     // An explicit provider wins; otherwise the pre-existing rule stands, so a
     // checkout that never heard of LLM_PROVIDER behaves exactly as before.
     llmProvider: e.LLM_PROVIDER ?? (e.ANTHROPIC_API_KEY ? "anthropic" : "fake"),

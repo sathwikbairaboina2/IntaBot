@@ -4,6 +4,7 @@ export const QUEUE = {
   publish: "publish",
   pollContainer: "poll-container",
   moderation: "moderation",
+  tokenRefresh: "token-refresh",
 } as const;
 
 export type QueueName = (typeof QUEUE)[keyof typeof QUEUE];
@@ -27,3 +28,4 @@ export const PUBLISH_SCAN_QUEUE = Symbol("PUBLISH_SCAN_QUEUE");
 export const PUBLISH_QUEUE = Symbol("PUBLISH_QUEUE");
 export const POLL_QUEUE = Symbol("POLL_QUEUE");
 export const MODERATION_QUEUE = Symbol("MODERATION_QUEUE");
+export const TOKEN_REFRESH_QUEUE = Symbol("TOKEN_REFRESH_QUEUE");

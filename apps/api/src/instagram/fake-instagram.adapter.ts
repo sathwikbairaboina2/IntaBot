@@ -8,6 +8,7 @@ import type {
   InstagramPort,
   PrivateReplyResult,
   PublishResult,
+  RefreshedToken,
   ReplyResult,
 } from "./instagram.port";
 
@@ -41,12 +42,25 @@ export interface DmRecord {
   messageId: string;
 }
 
+export interface HideRecord {
+  accountId: string;
+  commentId: string;
+  hidden: boolean;
+}
+
+export interface DeleteRecord {
+  accountId: string;
+  commentId: string;
+}
+
 @Injectable()
 export class FakeInstagramAdapter implements InstagramPort {
   private containers = new Map<string, FakeContainer>();
   private published: PublishedRecord[] = [];
   private replies: ReplyRecord[] = [];
   private dms: DmRecord[] = [];
+  private hides: HideRecord[] = [];
+  private deletes: DeleteRecord[] = [];
   private dmCounter = 0;
   private counter = 0;
   private processingPolls = 1;
@@ -74,6 +88,19 @@ export class FakeInstagramAdapter implements InstagramPort {
     return [...this.dms];
   }
 
+  getHides(): HideRecord[] {
+    return [...this.hides];
+  }
+
+  getDeletes(): DeleteRecord[] {
+    return [...this.deletes];
+  }
+
+  /** Every container's input in creation order, so tests can check carousel children. */
+  getContainerInputs(): Array<ContainerInput & { containerId: string }> {
+    return [...this.containers.values()].map((c) => ({ ...c.input, containerId: c.id }));
+  }
+
   /** Total containers ever created. Used to prove publishing is idempotent. */
   getContainerCount(): number {
     return this.containers.size;
@@ -84,6 +111,8 @@ export class FakeInstagramAdapter implements InstagramPort {
     this.published = [];
     this.replies = [];
     this.dms = [];
+    this.hides = [];
+    this.deletes = [];
     this.dmCounter = 0;
     this.counter = 0;
     this.processingPolls = 1;
@@ -148,6 +177,19 @@ export class FakeInstagramAdapter implements InstagramPort {
     const messageId = `fake-dm-${++this.dmCounter}`;
     this.dms.push({ accountId: account.id, commentId, text, messageId });
     return { messageId };
+  }
+
+  async hideComment(account: Account, commentId: string, hidden: boolean): Promise<void> {
+    this.hides.push({ accountId: account.id, commentId, hidden });
+  }
+
+  async deleteComment(account: Account, commentId: string): Promise<void> {
+    this.deletes.push({ accountId: account.id, commentId });
+  }
+
+  /** The token refresh is a live-mode job; reaching it in fake mode is a bug. */
+  async refreshAccessToken(_account: Account): Promise<RefreshedToken> {
+    throw new Error("the fake adapter has no token to refresh");
   }
 
   async getAccountInsights(
