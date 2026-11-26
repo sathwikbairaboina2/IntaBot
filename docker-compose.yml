@@ -7,8 +7,13 @@ services:
   dynamodb:
     container_name: intabot-dynamodb
     image: amazon/dynamodb-local:2.5.3
-    command: ["-jar", "DynamoDBLocal.jar", "-sharedDb", "-inMemory"]
+    # Persistent: data lives in the dynamodb-data volume and survives restarts.
+    # The control panel shares this instance (its own table). root lets the image
+    # write to the fresh named volume.
+    user: root
+    command: ["-jar", "DynamoDBLocal.jar", "-sharedDb", "-dbPath", "/home/dynamodblocal/data"]
     ports: ["8200:8000"]
+    volumes: ["dynamodb-data:/home/dynamodblocal/data"]
 
   redis:
     container_name: intabot-redis
@@ -31,4 +36,5 @@ services:
     volumes: ["minio-data:/data"]
 
 volumes:
+  dynamodb-data:
   minio-data:
