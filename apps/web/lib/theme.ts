@@ -28,12 +28,12 @@ export const IG: Record<ThemeName, Tokens> = {
     surface: "#fafafa",
     hairline: "#dbdbdb",
     text: "#000000",
-    textSecondary: "#737373",
+    textSecondary: "#5e5e5e",
     action: "#e1306c",
-    destructive: "#ed4956",
+    destructive: "#c9303e",
   },
 };
 
 export function parseTheme(value: string | null | undefined): ThemeName {
-  return value === "light" ? "light" : "dark";
+  return value === "dark" ? "dark" : "light";
 }

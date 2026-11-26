@@ -2,13 +2,13 @@ import { describe, expect, it } from "vitest";
 import { IG, THEME_COOKIE, parseTheme } from "./theme";
 
 describe("parseTheme", () => {
-  it("returns light only for the exact value 'light'", () => {
-    expect(parseTheme("light")).toBe("light");
+  it("returns dark only for the exact value 'dark'", () => {
+    expect(parseTheme("dark")).toBe("dark");
   });
 
-  it("falls back to dark for anything else", () => {
-    for (const value of [undefined, null, "", "dark", "LIGHT", "blue"]) {
-      expect(parseTheme(value)).toBe("dark");
+  it("falls back to light for anything else", () => {
+    for (const value of [undefined, null, "", "light", "DARK", "blue"]) {
+      expect(parseTheme(value)).toBe("light");
     }
   });
 });
@@ -19,5 +19,6 @@ describe("theme constants", () => {
     expect(IG.dark.ground).toBe("#000000");
     expect(IG.light.ground).toBe("#ffffff");
     expect(IG.dark.action).toBe("#e1306c");
+    expect(IG.light.textSecondary).toBe("#5e5e5e");
   });
 });
